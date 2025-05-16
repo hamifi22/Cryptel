@@ -1,0 +1,284 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile</title>
+    <link rel="stylesheet" href="{% static 'css/style_e_p.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+            .messages {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+            }
+    
+            .alert {
+                padding: 15px;
+                margin-bottom: 10px;
+                border: 1px solid transparent;
+                border-radius: 4px;
+                animation: fadeIn 0.5s, fadeOut 0.5s 2.5s forwards;
+            }
+    
+            .alert-success {
+                color: #3c763d;
+                background-color: #dff0d8;
+                border-color: #d6e9c6;
+            }
+    
+            .alert-error {
+                color: #a94442;
+                background-color: #f2dede;
+                border-color: #ebccd1;
+            }
+    
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+    
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+    
+            .file-input {
+                display: none;
+            }
+    
+            .profile-picture {
+                position: relative;
+                cursor: pointer;
+                margin-bottom:12px;
+
+            }
+    
+            .profile-picture:hover::after {
+                content: "Change Photo";
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: rgba(0,0,0,0.5);
+                color: white;
+                text-align: center;
+                padding: 5px;
+            }
+    </style>
+</head>
+<body>
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" action="{% url 'edit_profil' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+    <div class="container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="profile-card">
+                <div class="profile-picture-container">
+                    <div class="profile-picture">
+                        <img src="{% if profile.profile_picture %}{{ profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" 
+                             alt="Profile Picture" 
+                             class="profile-photo-sm"
+                             id="profile-picture-preview">
+                             <input type="file" 
+                             id="profile_picture" 
+                             name="profile_picture"
+                             class="file-input"
+                             accept="image/*">
+                    </div>
+                    <div class="profile-picture-actions">
+
+                        {% if profile.profile_picture %}
+                        <div class="remove-photo-checkbox">
+                            <input type="checkbox" id="remove_profile_picture" name="remove_profile_picture">
+                            <label for="remove_profile_picture">Remove current photo</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <label>Profile Completion</label>
+                    <progress value="{% if profile.profile_picture and profile.phone_number and profile.bio %}100{% elif profile.profile_picture or profile.phone_number or profile.bio %}60{% else %}30{% endif %}" 
+                             max="100"></progress>
+                    <span>{% if profile.profile_picture and profile.phone_number and profile.bio %}100%{% elif profile.profile_picture or profile.phone_number or profile.bio %}60{% else %}30{% endif %}</span>
+                </div>
+                <div class="theme-toggle">
+                    <label><i class="fas fa-moon"></i> Dark Mode</label>
+                    <input type="checkbox" id="theme-toggle">
+                </div>
+                <div class="quick-links">
+                    <a href="{% url 'profil' %}" class="btn btn-link"><i class="fas fa-user"></i> View Profile</a>
+                    <a href="#" class="btn btn-link"><i class="fas fa-cog"></i> Account Settings</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Form -->
+        <main class="form-container">
+            <form method="post" action="{% url 'edit_profil' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Champ de téléchargement caché mais dans le formulaire -->
+
+                
+                <header class="sticky-header">
+                    <h1>Edit Profile</h1>
+                    <div class="actions">
+                        <a href="{% url 'profil' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </header>
+
+                <!-- Personal Information -->
+                <section class="section">
+                    <h2><i class="fas fa-user-edit"></i> Personal Information</h2>
+
+                    <div class="form-group">
+                        <label for="username"><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="username" value="{{ user.username }}" readonly>
+                        <span class="status">Cannot be changed</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="first_name"><i class="fas fa-id-card"></i> First Name</label>
+                        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name"><i class="fas fa-id-card"></i> Last Name</label>
+                        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                        <span class="status verified">Verified</span>
+                    </div>
+
+                    <!-- Additional Profile Info -->
+                    <div class="form-group">
+                        <label for="phone_number"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" id="phone_number" name="phone_number" 
+                               value="{{ profile.phone_number|default:'' }}" 
+                               class="phone-input"
+                               pattern="[+]{0,1}[0-9\s\-]+"
+                               title="Enter a valid phone number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bio"><i class="fas fa-info-circle"></i> Bio</label>
+                        <textarea id="bio" name="bio" class="bio-textarea">{{ profile.bio|default:'' }}</textarea>
+                    </div>
+                </section>
+
+                <!-- Information Security -->
+                <section class="section">
+                    <h2><i class="fas fa-shield-alt"></i> Information Security</h2>
+                    {% if user_key %}
+                    <div class="form-group">
+                        <label for="public-key" class="tooltip">
+                            Public Key
+                            <span class="tooltip-text">Used for secure communication</span>
+                        </label>
+                        <textarea id="public-key" readonly>{{ user_key.public_key }}</textarea>
+                        <div class="key-actions">
+                            <button type="button" class="btn btn-secondary" onclick="copyToClipboard('public-key')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <h3>Devices Login</h3>
+                        <ul class="device-list">
+                            <li>
+                                <div class="device-info">
+                                    <strong>iPhone 14</strong>
+                                    <p>Last Active: 2025-04-29 10:30 AM</p>
+                                    <p>Location: New York, USA</p>
+                                </div>
+                                <button class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                            </li>
+                            <li>
+                                <div class="device-info">
+                                    <strong>Chrome on Windows</strong>
+                                    <p>Last Active: 2025-04-28 09:15 PM</p>
+                                    <p>Location: London, UK</p>
+                                </div>
+                                <button class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                            </li>
+                        </ul>
+                        <button class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout All Devices</button>
+                    </div>
+                </section>
+            </form>
+        </main>
+    </div>
+
+    <script>
+        // Dark Mode Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('change', () => {
+                document.body.classList.toggle('dark-mode');
+                // You can add code here to save theme preference
+            });
+        }
+
+        // Profile Picture Upload Preview
+        document.getElementById('profile_picture').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('profile-picture-preview').src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Make profile picture clickable
+        document.getElementById('profile-picture-preview').addEventListener('click', function() {
+            document.getElementById('profile_picture').click();
+        });
+
+        // Copy to Clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            document.execCommand('copy');
+            
+            // Show temporary message
+            const originalText = element.previousElementSibling.textContent;
+            element.previousElementSibling.textContent = 'Copied to clipboard!';
+            setTimeout(() => {
+                element.previousElementSibling.textContent = originalText;
+            }, 2000);
+        }
+
+        // Auto-hide messages after 3 seconds
+        setTimeout(() => {
+            const messages = document.querySelector('.messages');
+            if (messages) {
+                messages.style.display = 'none';
+            }
+        }, 3000);
+
+        // Phone number input formatting
+        document.getElementById('phone_number').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9+\-\s]/g, '');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/bn.js@5.2.0/lib/bn.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h2>Welcome ici , {{ user.username }}!</h2>
+    <a href="{% url 'chatting' %}">conversation</a>
+    <a href="{% url 'message' %}">message</a>
+    <a href="{% url 'dechf' %}">dechf</a>
+    <a href="{% url 'annuaire' %}">annuaire</a>
+    <a href="{% url 'logout' %}">Logout</a>
+    <script>
+        const key = sessionStorage.getItem("secretKey");
+        console.log("clé session :",key );
+
+    
+  // AJAX request to get the secret key
+  $(document).ready(function() {
+    // You can use the conversation ID dynamically
+    
+    $.ajax({
+        url: '/accounts/get_secret_key/' , // URL to the view
+        method: 'GET',
+        success: async function (response) { // <--- make this async
+          if (response.secret_key) {
+              const sessionKey = sessionStorage.getItem("secretKey");
+              console.log(sessionKey);
+              if (sessionKey) {
+                  try {
+                     const fullKey = base64ToUint8Array(sessionKey); // Ta clé en base64
+                     const new_k2_bytes = fullKey.slice(0, 32); // Pour AES-256
+                    
+                      const decryptedKey = await decrypt_aes_cbc(response.secret_key, new_k2_bytes);
+                      console.log(decryptedKey);
+                      sessionStorage.setItem('privateKey', decryptedKey);
+
+
+
+                          // Inject into the input if needed
+
+                      // Optionally, display it or use it further
+                  } catch (error) {
+                      console.error("Decryption failed:", error);
+                  }
+            } else {
+                // Handle the case when no key is found
+
+            }
+          }
+        },
+
+        error: function() {
+            $('#secret-key').text('Error retrieving secret key');
+        }
+    });
+});
+async function decryptAesCbc(encryptedBase64, keyBase64) {
+    const encryptedData = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+    const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+    const iv = encryptedData.slice(0, 16);
+    const ciphertext = encryptedData.slice(16);
+
+    const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-CBC' },
+        false,
+        ['decrypt']
+    );
+
+    const decrypted = await window.crypto.subtle.decrypt(
+        {
+            name: 'AES-CBC',
+            iv: iv
+        },
+        cryptoKey,
+        ciphertext
+    );
+
+    return new TextDecoder().decode(decrypted);
+}
+function base64ToUint8Array(base64) {
+    return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  }
+    </script>
+
+</body>
+</html>

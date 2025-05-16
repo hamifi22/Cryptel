@@ -1,0 +1,127 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Profile</title>
+    <link rel="stylesheet" href="{% static 'css/style_p.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="view-container">
+        <!-- Narrow Navigation Sidebar -->
+        <aside class="nav-sidebar">
+            <nav class="sidebar-nav">
+                <a href="{% url 'annuaire' %}" class="nav-link" aria-label="Directory" title="Annuaire"><i class="fas fa-book"></i></a>
+                <a href="{% url 'chatting' %}" class="nav-link" aria-label="Messages" title="Messages"><i class="fas fa-envelope"></i></a>
+                <a href="{% url 'logout' %}" class="nav-link logout" aria-label="Log Out" title="Log Out"><i class="fas fa-sign-out-alt"></i></a>
+            </nav>
+        </aside>
+
+        <!-- Profile Sidebar -->
+        <aside class="profile-sidebar">
+            <div class="profile-card">
+                <div class="profile-picture">
+                    <img src="{% if user_profile.profile.profile_picture %}{{ user_profile.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" 
+                         alt="Profile Picture" 
+                         class="profile-photo-sm"
+                         id="profile-picture">
+                    {% if request.user == user_profile %}
+                    <a href="{% url 'edit_profil' %}" class="edit-photo-link">
+                        <i class="fas fa-camera"></i> Changer
+                    </a>
+                    {% endif %}
+                </div>
+                <h2>{{ user_profile.username }}</h2>
+                <p>{{ user_profile.get_full_name }}</p>
+
+                <button class="theme-toggle-btn" aria-label="Toggle Dark Mode">
+                    <i class="fas fa-sun"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Right Details Section -->
+        <main class="profile-details-container">
+            <header class="sticky-header">
+                <h1>Profile</h1>
+                <div class="actions">
+                    <button class="btn btn-share"><i class="fas fa-share"></i> Share</button>
+                    {% if request.user == user_profile %}
+                        <a href="{% url 'edit_profil' %}" class="btn btn-primary"><i class="fas fa-edit"></i> Edit Profile</a>
+                    {% endif %}
+                </div>
+            </header>
+            <section class="section">
+                <h2><i class="fas fa-info-circle"></i> About</h2>
+                <div class="detail-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ user_profile.email }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-phone"></i>
+                    <span>+1 123-456-7890</span>
+                </div>
+                {% if public_key %}
+                <div class="detail-item">
+                    <i class="fas fa-key"></i>
+                    <span class="public-key">Public Key: {{ public_key|truncatechars:30 }}</span>
+                </div>
+                {% endif %}
+            </section>
+            <section class="section">
+                <h2><i class="fas fa-clock"></i> Recent Activity</h2>
+                <ul class="timeline">
+                    {% for activity in recent_activities %}
+                    <li>
+                        <p>{{ activity.action }}</p>
+                        <span>{{ activity.date|date:"F d, Y" }}</span>
+                    </li>
+                    {% empty %}
+                    <li>No recent activity</li>
+                    {% endfor %}
+                </ul>
+            </section>
+            <footer>
+                <p>Last Updated: April 29, 2025</p>
+            </footer>
+        </main>
+    </div>
+    <script>
+     // Dark Mode Toggle
+const themeToggleBtn = document.querySelector('.theme-toggle-btn');
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+        const icon = document.querySelector('.theme-toggle-btn i');
+        document.body.classList.toggle('dark-mode');
+        themeToggleBtn.classList.toggle('active');
+        icon.classList.toggle('fa-moon');
+    });
+}
+
+// Share Button
+const shareButton = document.querySelector('.btn-share');
+if (shareButton) {
+    shareButton.addEventListener('click', () => {
+        alert('Share functionality coming soon! Copy profile URL or share to social media.');
+        // Example: Copy link to clipboard
+        // navigator.clipboard.writeText(window.location.href);
+    });
+}
+
+// Log Out Confirmation
+const logoutLinks = document.querySelectorAll('.nav-link.logout');
+logoutLinks.forEach(link => {
+    link.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (confirm('Are you sure you want to log out?')) {
+            // Redirect to Django logout URL (adjust as needed)
+            window.location.href = '/logout'; // Replace with {% url 'logout' %}
+        }
+    });
+});
+    </script>
+</body>
+</html>

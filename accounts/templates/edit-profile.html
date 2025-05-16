@@ -1,0 +1,844 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile</title>
+    <link rel="stylesheet" href="{% static 'css/style_e_p.css' %}">
+      <script src="{% static 'js/utils.js' %}"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <form method="post" action="{% url 'edit_profil' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="container">
+        <!-- Narrow Navigation Sidebar -->
+        <aside class="nav-sidebar">
+            <nav class="narrow-sidebar-nav">
+                <a href="{% url 'annuaire' %}" class="nav-link" aria-label="Directory" title="Annuaire"><i class="fas fa-book"></i></a>
+                <a href="{% url 'chatting' %}" class="nav-link" aria-label="Messages" title="Messages"><i class="fas fa-envelope"></i></a>
+                <a href="{% url 'logout' %}" class="nav-link logout" aria-label="Log Out" title="Log Out"><i class="fas fa-sign-out-alt"></i></a>
+            </nav>
+        </aside>
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="profile-card">
+                <div class="profile-picture-container">
+                    <div class="profile-picture">
+                        <img src="{% if profile.profile_picture %}{{ profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" 
+                             alt="Profile Picture" 
+                             class="profile-photo-sm"
+                             id="profile-picture-preview">
+                        <input type="file" 
+                               id="profile_picture" 
+                               name="profile_picture"
+                               class="file-input"
+                               accept="image/*">
+                    </div>
+                    <div class="profile-picture-actions">
+                        {% if profile.profile_picture %}
+                        <div class="remove-photo-toggle">
+                            <input type="checkbox" id="remove_profile_picture" name="remove_profile_picture" class="toggle-input">
+                            <label for="remove_profile_picture" class="toggle-label">
+                                <span class="toggle-text">Remove Photo</span>
+                                <span class="toggle-switch"></span>
+                            </label>
+                            <span class="toggle-tooltip">Check to remove your current profile photo</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <label>Profile Completion</label>
+                    <progress value="{% if profile.profile_picture and profile.phone_number and profile.bio %}100{% elif profile.profile_picture or profile.phone_number or profile.bio %}60{% else %}30{% endif %}" 
+                             max="100"></progress>
+                    <span>{% if profile.profile_picture and profile.phone_number and profile.bio %}100%{% elif profile.profile_picture or profile.phone_number or profile.bio %}60{% else %}30{% endif %}</span>
+                </div>
+                <div class="theme-toggle-btn" aria-label="Toggle Dark Mode">
+                    <i class="fas fa-sun"></i>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Form -->
+        <main class="form-container">
+     
+                
+                <header class="sticky-header">
+                    <h1>Edit Profile</h1>
+                    <div class="actions">
+                        <a href="{% url 'profil' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </header>
+
+                <!-- Personal Information -->
+                <section class="section">
+                    <h2><i class="fas fa-user-edit"></i> Personal Information</h2>
+
+                    <div class="form-group">
+                        <label for="username"><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="username" value="{{ user.username }}" readonly>
+                        <span class="status">Cannot be changed</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="first_name"><i class="fas fa-id-card"></i> First Name</label>
+                        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name"><i class="fas fa-id-card"></i> Last Name</label>
+                        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}">
+                    </div>
+                
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                        <span class="status verified">Verified</span>
+                    </div>
+
+                    <!-- Additional Profile Info -->
+
+
+                    <div class="form-group">
+                        <label for="bio"><i class="fas fa-info-circle"></i> Bio</label>
+                        <textarea id="bio" name="bio" class="bio-textarea">{{ profile.bio|default:'' }}</textarea>
+                    </div>
+                    <div class="form-group">
+    <button type="button" class="btn btn-secondary" onclick="showChangePasswordModal()">
+        <i class="fas fa-key"></i> Change Password
+    </button>
+</div>
+                    
+                </section>
+                
+
+                <!-- Information Security -->
+                <section class="section">
+                    <h2><i class="fas fa-shield-alt"></i> Information Security</h2>
+                    {% if user_key %}
+                    <div class="form-group">
+                        <label for="public-key" class="tooltip">
+                            Public Key
+                            <span class="tooltip-text">Used for secure communication</span>
+                        </label>
+                        <textarea id="public-key" readonly>{{ user_key.public_key }}</textarea>
+                        <div class="key-actions">
+                            <button type="button" class="btn btn-secondary" onclick="copyToClipboard('public-key')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <h3>Active Devices</h3>
+                        <ul class="device-list">
+                            {% for device in devices %}
+                            <li class="{% if device.current_session %}current-device{% endif %}">
+                                <div class="device-info">
+                                    <strong>{{ device.device_name }}</strong>
+                                    <p>Last Active: {{ device.last_login|date:"Y-m-d h:i A" }}</p>
+                                    <p>Location: {{ device.location|default:"Unknown" }}</p>
+                                    <p>IP: {{ device.ip_address }}</p>
+                                    {% if device.current_session %}
+                                    <span class="current-device-badge">Current Session</span>
+                                    {% endif %}
+                                </div>
+                                {% if not device.current_session %}
+                                <form method="post" action="{% url 'edit_profil' %}" class="device-logout-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="logout_device" value="{{ device.id }}">
+                                    <button type="submit" class="btn btn-secondary">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </li>
+                            {% empty %}
+                            <li class="no-devices">No active devices found.</li>
+                            {% endfor %}
+                        </ul>
+                        {% if devices.count > 1 %}
+                        <form method="post" action="{% url 'edit_profil' %}" class="logout-all-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="logout_all_devices" value="1">
+                            <button type="submit" class="btn btn-secondary">
+                                <i class="fas fa-sign-out-alt"></i> Logout All Other Devices
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </section>
+            </form>
+        </main>
+
+<!-- Change Password Modal -->
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeChangePasswordModal()">×</span>
+        <h2>Change Password</h2>
+        <form id="changePasswordForm" method="post">
+            {% csrf_token %}
+            <!-- Old Password Section -->
+            <section id="section1" class="modal-section">
+                <h3><i class="fas fa-lock"></i> Current Password</h3>
+                <div class="form-group">
+                    <label for="current_password">Enter Current Password</label>
+                    <div class="show-password-toggle">
+                        <input type="password" id="current_password" name="current_password" required>
+                        <input type="checkbox" id="show_current_password" class="show-password-checkbox">
+                        <label for="show_current_password" class="show-password-label">
+                            <i class="fas fa-eye"></i> Show
+                        </label>
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <button type="button" class="btn btn-primary" onclick="showSection2()">Next</button>
+                </div>
+            </section>
+            <!-- New Password Section -->
+            <section id="section2" class="modal-section" style="display: none;">
+                <h3><i class="fas fa-key"></i> New Password</h3>
+                <div class="form-group">
+                    <label for="new_password">Enter New Password</label>
+                    <div class="show-password-toggle">
+                        <input type="password" id="new_password" name="new_password" required oninput="checkPasswordStrength()">
+                        <input type="checkbox" id="show_new_password" class="show-password-checkbox">
+                        <label for="show_new_password" class="show-password-label">
+                            <i class="fas fa-eye"></i> Show
+                        </label>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar"><div></div></div>
+                        <span class="strength-text"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <div class="show-password-toggle">
+                        <input type="password" id="confirm_password" name="confirm_password" required>
+                        <input type="checkbox" id="show_confirm_password" class="show-password-checkbox">
+                        <label for="show_confirm_password" class="show-password-label">
+                            <i class="fas fa-eye"></i> Show
+                        </label>
+                    </div>
+                </div>
+                <div class="submit-progress"><div></div></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="showSection1()">Back</button>
+                    <button type="button" class="btn btn-primary" id="submitPasswordChange" onclick="changer_mdp()">Submit</button>
+                </div>
+            </section>
+            <div id="errorMessages" class="error-message"></div>
+        </form>
+    </div>
+</div>
+
+<div id="successPopup" class="modal">
+    <div class="modal-content success-popup">
+        <span class="modal-close success-close" onclick="closeSuccessPopup()">×</span>
+        <h2><i class="fas fa-check-circle"></i> Success!</h2>
+        <p>Password changed and all messages re-encrypted successfully!</p>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary" onclick="closeSuccessPopup()">OK</button>
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    <script>
+        function disableModalButtons() {
+    const submitButton = document.getElementById('submitPasswordChange');
+    const backButton = document.querySelector('#section2 .modal-actions .btn-secondary');
+    if (submitButton) submitButton.disabled = true;
+    if (backButton) backButton.disabled = true;
+    // Add visual feedback for disabled state
+    if (submitButton) submitButton.style.opacity = '0.6';
+    if (backButton) backButton.style.opacity = '0.6';
+    if (submitButton) submitButton.style.cursor = 'not-allowed';
+    if (backButton) backButton.style.cursor = 'not-allowed';
+}
+
+function enableModalButtons() {
+    const submitButton = document.getElementById('submitPasswordChange');
+    const backButton = document.querySelector('#section2 .modal-actions .btn-secondary');
+    if (submitButton) submitButton.disabled = false;
+    if (backButton) backButton.disabled = false;
+    // Restore visual feedback
+    if (submitButton) submitButton.style.opacity = '1';
+    if (backButton) backButton.style.opacity = '1';
+    if (submitButton) submitButton.style.cursor = 'pointer';
+    if (backButton) backButton.style.cursor = 'pointer';
+}
+        // Dark Mode Toggle
+        const themeToggleBtn = document.querySelector('.theme-toggle-btn');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                const icon = themeToggleBtn.querySelector('i');
+                document.body.classList.toggle('dark-mode');
+                themeToggleBtn.classList.toggle('active');
+                if (icon.classList.contains('fa-sun')) {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                } else {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
+            });
+        }
+
+        // Profile Picture Upload Preview
+        document.getElementById('profile_picture').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('profile-picture-preview').src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Make profile picture clickable
+        document.getElementById('profile-picture-preview').addEventListener('click', function() {
+            document.getElementById('profile_picture').click();
+        });
+
+        // Copy to Clipboard
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            document.execCommand('copy');
+            
+            // Show temporary message
+            const originalText = element.previousElementSibling.textContent;
+            element.previousElementSibling.textContent = 'Copied to clipboard!';
+            setTimeout(() => {
+                element.previousElementSibling.textContent = originalText;
+            }, 2000);
+        }
+
+        // Auto-hide messages after 3 seconds
+        setTimeout(() => {
+            const messages = document.querySelector('.messages');
+            if (messages) {
+                messages.style.display = 'none';
+            }
+        }, 3000);
+
+        // Phone number input formatting
+        document.getElementById('phone_number').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9+\-\s]/g, '');
+        });
+
+        // Remove Photo Toggle Animation
+        const removePhotoToggle = document.getElementById('remove_profile_picture');
+        if (removePhotoToggle) {
+            removePhotoToggle.addEventListener('change', function() {
+                const toggleLabel = this.nextElementSibling;
+                toggleLabel.classList.add('pulse');
+                setTimeout(() => {
+                    toggleLabel.classList.remove('pulse');
+                }, 600);
+            });
+        }
+
+        // Confirm device logout actions
+        document.querySelectorAll('.device-logout-form, .logout-all-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const action = this.classList.contains('logout-all-form') 
+                    ? 'logout all other devices' 
+                    : 'logout this device';
+                
+                if (!confirm(`Are you sure you want to ${action}?`)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+
+        // Change Password Modal
+
+function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'none';
+    // Reset form and show Section 1
+    document.getElementById('changePasswordForm').reset();
+    showSection1();
+}
+
+// Show Section 1 (Current Password)
+function showSection1() {
+    const errorDiv = document.getElementById('errorMessages');
+    const section1 = document.getElementById('section1');
+    const section2 = document.getElementById('section2');
+    section1.classList.remove('hidden');
+    section1.classList.add('visible');
+    section2.classList.add('hidden');
+    section2.classList.remove('visible');
+    section1.style.display = 'block';
+    section2.style.display = 'none';
+}
+
+    async function getSalt(username) {
+      try {
+        const response = await fetch(`/accounts/get_salt/?username=${encodeURIComponent(username)}`, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        if (!response.ok) throw data.error || 'Failed to fetch salt';
+        console.log(data.salt);
+        const cleanedStr = data.salt.replace(/[('),]/g, '');
+        console.log(cleanedStr);
+        return Uint8Array.from(atob(cleanedStr), c => c.charCodeAt(0));
+      } catch (error) {
+        throw error || 'An unknown error occurred.';
+      }
+    }
+    
+function initializeShowPasswordToggles() {
+    const toggles = document.querySelectorAll('.show-password-checkbox');
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const input = this.parentElement.querySelector('input[type="password"], input[type="text"]');
+            const label = this.nextElementSibling;
+            if (this.checked) {
+                input.type = 'text';
+                label.innerHTML = '<i class="fas fa-eye-slash"></i> Hide';
+            } else {
+                input.type = 'password';
+                label.innerHTML = '<i class="fas fa-eye"></i> Show';
+            }
+        });
+    });
+}
+
+// Password Strength Checker
+function checkPasswordStrength() {
+    const password = document.getElementById('new_password').value;
+    const strengthBar = document.querySelector('.strength-bar');
+    const strengthText = document.querySelector('.strength-text');
+    
+    let strength = 0;
+    
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    
+    strengthBar.className = 'strength-bar';
+    switch(strength) {
+        case 0:
+        case 1:
+            strengthBar.classList.add('weak');
+            strengthText.textContent = 'Weak';
+            break;
+        case 2:
+        case 3:
+            strengthBar.classList.add('medium');
+            strengthText.textContent = 'Medium';
+            break;
+        case 4:
+            strengthBar.classList.add('strong');
+            strengthText.textContent = 'Strong';
+            break;
+    }
+}
+
+// Show Section 2 (New Password)
+async function showSection2() {
+    const errorDiv = document.getElementById('errorMessages');
+
+    const username = "{{ user.username }}";
+    const password = document.getElementById('current_password').value;
+    const section1 = document.getElementById('section1');
+    const section2 = document.getElementById('section2');
+
+    const salt = await getSalt(username);
+    const derivedPassword = await derivePBKDF2(password, salt);
+
+     const loginData = {
+          username: username,
+          derived_password: toHex(derivedPassword),
+        };
+     const response = await fetch('{% url "login" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(loginData)
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+
+
+
+
+
+
+                section1.classList.add('hidden');
+                section1.classList.remove('visible');
+                section2.classList.remove('hidden');
+                section2.classList.add('visible');
+                section1.style.display = 'none';
+                section2.style.display = 'block';
+
+        } else {
+          errorDiv.textContent = data.errors || 'mot de passe incorrect.';
+          errorDiv.style.display = 'block';
+          setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+    
+
+
+
+
+
+}
+
+
+
+// Modified changer_mdp function with success pop-up
+async function changer_mdp() {
+    const errorDiv = document.getElementById('errorMessages');
+    const submitButton = document.getElementById('submitPasswordChange');
+    const progressBar = document.querySelector('.submit-progress');
+    const newPassword = document.getElementById('new_password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+
+    // Password strength validation
+    const strengthText = document.querySelector('.strength-text').textContent;
+    if (strengthText !== 'Strong') {
+        errorDiv.textContent = 'Please use a stronger password (minimum 8 characters, including uppercase, numbers, and special characters)';
+        errorDiv.style.display = 'block';
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        return;
+    }
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+        errorDiv.textContent = "Les mots de passe ne correspondent pas.";
+        errorDiv.style.display = 'block';
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        return;
+    }
+
+    // Disable buttons and show progress bar
+    disableModalButtons();
+    progressBar.style.display = 'block';
+
+    try {
+        // Your existing password change logic
+        const response = await fetch('/accounts/get_all_crypted_messages/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch messages');
+        }
+
+        const data = await response.json();
+        const messages = data.messages;
+        const sessionKey = sessionStorage.getItem("secretKey");
+        
+        const salt2 = generateSalt();
+        const key_session_normal = await derivePBKDF2(newPassword, salt2);
+        const newKey = btoa(String.fromCharCode(...key_session_normal));
+
+        const salt = generateSalt();
+        const derivedPassword = await derivePBKDF2(newPassword, salt);
+        const fullKey = base64ToUint8Array(newKey);
+        const new_k2_bytes = fullKey.slice(0, 32);
+        const private_key = sessionStorage.getItem("privateKey");
+
+        const S_crypted = await encrypt_aes_cbc(private_key, new_k2_bytes);
+
+        for (const message of messages) {
+            let decryptedContent;
+            if (message.text) {
+                decryptedContent = await decryptAesCbc(message.text, sessionKey);
+            }
+
+            let reencrypted = {};
+            if (decryptedContent) {
+                reencrypted = await encryptAesCbc(decryptedContent, newKey);
+                await saveReencryptedMessage(message.id, reencrypted, 'message');
+            }
+
+            if (message.file) {
+                const fichier_byte = base64ToBytes(message.file);
+                const decryptedFile = await decryptAesCbcFile(fichier_byte, sessionKey);
+                const encrypted = await encryptAesCbcFile(decryptedFile, newKey, 'file');
+                const binary = encrypted.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+                const reencrypted = btoa(binary);
+                await saveReencryptedMessage(message.id, reencrypted, 'file');
+            }
+        }
+
+        const updateResponse = await fetch('/accounts/update_password/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                new_derived_key: toHex(derivedPassword),
+                new_salt: toHex(salt),
+                new_salt2: toHex(salt2),
+                Sb: S_crypted
+            })
+        });
+
+        if (!updateResponse.ok) {
+            throw new Error('Password update failed');
+        }
+
+        sessionStorage.setItem('secretKey', newKey);
+
+        // Hide progress bar, re-enable buttons, and show success pop-up
+        progressBar.style.display = 'none';
+        enableModalButtons();
+        closeChangePasswordModal();
+        document.getElementById('successPopup').style.display = 'flex';
+
+    } catch (error) {
+        console.error("Error during password change:", error);
+        errorDiv.textContent = `Error: ${error.message}`;
+        errorDiv.style.display = 'block';
+        progressBar.style.display = 'none';
+        enableModalButtons();
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+    }
+}
+
+// Function to close the success pop-up
+function closeSuccessPopup() {
+    document.getElementById('successPopup').style.display = 'none';
+}
+
+// Add event listener to close pop-up when clicking outside
+document.getElementById('successPopup').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSuccessPopup();
+    }
+});
+// Modified showChangePasswordModal to initialize toggles
+function showChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'flex';
+    showSection1();
+    initializeShowPasswordToggles();
+    checkPasswordStrength();
+}
+
+// Initialize when modal opens
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('changePasswordModal');
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeChangePasswordModal();
+        }
+    });
+});
+function base64ToUint8Array(base64) {
+return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+}
+
+async function saveReencryptedMessage(messageId, encryptedData,typee) {
+    const response = await fetch(`/accounts/update_encrypted_message/${messageId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+            encryptedData:encryptedData,
+            typee:typee
+           }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to save message ${messageId}`);
+    }
+}
+
+
+  async function encryptAesCbc(message, keyBase64, typee) {
+    const iv = window.crypto.getRandomValues(new Uint8Array(16));
+    const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+    const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-CBC' },
+        false,
+        ['encrypt']
+    );
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(message);
+
+    const encrypted = await window.crypto.subtle.encrypt(
+        {
+            name: 'AES-CBC',
+            iv: iv
+        },
+        cryptoKey,
+        data
+    );
+
+    const encryptedBytes = new Uint8Array(encrypted);
+    const combined = new Uint8Array(iv.length + encryptedBytes.length);
+    combined.set(iv);
+    combined.set(encryptedBytes, iv.length);
+
+    // Always use the same encoding method regardless of typee
+    const binaryString = Array.from(combined).map(byte => String.fromCharCode(byte)).join('');
+    return btoa(binaryString);
+}
+async function decryptAesCbcFile(encryptedData, key) {
+  const keyBytes = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+
+  try {
+      if (encryptedData.length < 32) { // IV (16) + at least 1 block (16)
+          throw new Error('Encrypted data too short');
+      }
+
+      const iv = encryptedData.slice(0, 16);
+      const ciphertext = encryptedData.slice(16);
+
+      const cryptoKey = await window.crypto.subtle.importKey(
+          'raw',
+          keyBytes,
+          { name: 'AES-CBC' },
+          false,
+          ['decrypt']
+      );
+
+      const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-CBC', iv },
+          cryptoKey,
+          ciphertext
+      );
+
+      // Remove PKCS#7 padding
+      const decryptedBytes = new Uint8Array(decrypted);
+      const paddingLength = decryptedBytes[decryptedBytes.length - 1];
+      if (paddingLength > 16) {
+          throw new Error('Invalid padding');
+      }
+      
+      return decryptedBytes.slice(0, decryptedBytes.length - paddingLength);
+  } catch (error) {
+      console.error('Decryption failed:', error);
+      throw error;
+  }
+}
+async function encryptAesCbcFile(data, key) {
+  // Convert Base64 to Uint8Array
+  const keyBytes = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+  const iv = window.crypto.getRandomValues(new Uint8Array(16));
+  
+  // Apply PKCS#7 padding
+  const blockSize = 16;
+  const paddingLength = blockSize - (data.length % blockSize);
+  const paddedData = new Uint8Array(data.length + paddingLength);
+  paddedData.set(data);
+  paddedData.fill(paddingLength, data.length);
+
+  const cryptoKey = await window.crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-CBC' },
+      false,
+      ['encrypt']
+  );
+
+  const encrypted = await window.crypto.subtle.encrypt(
+      { name: 'AES-CBC', iv },
+      cryptoKey,
+      paddedData
+  );
+
+  // Combine IV and encrypted data
+  const result = new Uint8Array(iv.length + encrypted.byteLength);
+  result.set(iv);
+  result.set(new Uint8Array(encrypted), iv.length);
+  
+  return result;
+}
+
+  async function decryptAesCbc(encryptedBase64, keyBase64,typee) {
+    console.log(encryptedBase64);
+    const encryptedData = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+    const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+    const iv = encryptedData.slice(0, 16);
+    const ciphertext = encryptedData.slice(16);
+
+    const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-CBC' },
+        false,
+        ['decrypt']
+    );
+
+    const decrypted = await window.crypto.subtle.decrypt(
+        {
+            name: 'AES-CBC',
+            iv: iv
+        },
+        cryptoKey,
+        ciphertext
+    );
+
+    return new TextDecoder().decode(decrypted);
+}
+
+
+// Close modal when clicking outside
+document.getElementById('changePasswordModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeChangePasswordModal();
+    }
+});
+
+// Form validation
+document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+    const newPassword = document.getElementById('new_password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (newPassword !== confirmPassword) {
+        e.preventDefault();
+        alert('New password and confirmation do not match!');
+    }
+});
+    </script>
+</body>
+</html>

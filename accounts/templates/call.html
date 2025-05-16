@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Call</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'accounts/css/call.css' %}">
+</head>
+<body>
+    <!-- Main Call Interface -->
+    <div class="container mt-5" id="mainInterface">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3>Voice Call</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="receiver" class="form-label">Select User to Call</label>
+                            <select id="receiver" class="form-select">
+                                {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="call-status text-center mb-3">
+                            <span id="callStatus">Ready to Call</span>
+                        </div>
+                        <div class="d-flex justify-content-center gap-3">
+                            <button id="startCallBtn" class="btn btn-success" onclick="startCall()">Start Call</button>
+                            <button id="endCallBtn" class="btn btn-danger" onclick="endCall()" disabled>End Call</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- In-Call Interface (Hidden Initially) -->
+    <div class="container mt-5 d-none" id="inCallInterface">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow in-call-card">
+                    <div class="card-header bg-success text-white text-center">
+                        <h3>In Call</h3>
+                        <p id="callPartner"></p>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="call-status mb-3">
+                            <span id="inCallStatus">Connected</span>
+                        </div>
+                        <div class="audio-container mb-3">
+                            <audio id="remoteAudio" autoplay></audio>
+                            <p class="text-muted">Call audio</p>
+                        </div>
+                        <button class="btn btn-danger btn-lg" onclick="endCall()">End Call</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accept/Reject Modal -->
+    <div class="modal fade" id="callPromptModal" tabindex="-1" aria-labelledby="callPromptLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="callPromptLabel">Incoming Call</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="callerName">Unknown is calling...</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" onclick="acceptCall()">Accept</button>
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="rejectCall()">Reject</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+     const userId = {{ request.user.id }};
+     const ws = new WebSocket('ws://' + window.location.host + '/ws/');
+     let peerConnection;
+     let currentCallerId = null;
+     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+     const callStatus = document.getElementById('callStatus');
+     const startCallBtn = document.getElementById('startCallBtn');
+     const endCallBtn = document.getElementById('endCallBtn');
+     const mainInterface = document.getElementById('mainInterface');
+     const inCallInterface = document.getElementById('inCallInterface');
+     const callPartner = document.getElementById('callPartner');
+     const inCallStatus = document.getElementById('inCallStatus');
+     const callPromptModal = new bootstrap.Modal(document.getElementById('callPromptModal'));
+     const callerName = document.getElementById('callerName');
+     
+     ws.onopen = () => {
+         console.log('WebSocket connected successfully');
+         updateStatus('Ready to Call');
+     };
+     
+     ws.onerror = (error) => {
+         console.error('WebSocket error:', error);
+         updateStatus('WebSocket connection failed', 'ended');
+     };
+     
+     ws.onclose = (event) => {
+         console.log('WebSocket closed:', event);
+         updateStatus('WebSocket disconnected', 'ended');
+     };
+     
+     ws.onmessage = async (event) => {
+         const data = JSON.parse(event.data);
+         console.log('Received WebSocket message:', data);
+     
+         if (data.type === 'call_initiate') {
+             currentCallerId = data.caller_id;
+             callerName.textContent = `${data.caller_name} is calling...`;
+             callPromptModal.show();
+         } else if (data.type === 'accept') {
+             await handleAccept(data.caller_name);
+         } else if (data.type === 'reject') {
+             updateStatus('Call rejected', 'ended');
+             toggleButtons(false);
+             switchToMainInterface();
+         } else if (data.type === 'offer') {
+             await handleOffer(data.offer, data.caller_id);
+         } else if (data.type === 'answer') {
+             await handleAnswer(data.answer);
+         } else if (data.type === 'ice_candidate') {
+             await handleIceCandidate(data.candidate);
+         }
+     };
+     
+     async function startCall() {
+         const receiverId = document.getElementById('receiver').value;
+         if (!receiverId) {
+             alert('Please select a user to call');
+             return;
+         }
+     
+         updateStatus('Initiating call...', 'connecting');
+         toggleButtons(true);
+     
+         try {
+             peerConnection = new RTCPeerConnection(configuration);
+             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+     
+             peerConnection.onicecandidate = (event) => {
+                 if (event.candidate) {
+                     ws.send(JSON.stringify({
+                         type: 'ice_candidate',
+                         candidate: event.candidate,
+                         receiver_id: receiverId
+                     }));
+                 }
+             };
+     
+             peerConnection.ontrack = (event) => {
+                 document.getElementById('remoteAudio').srcObject = event.streams[0];
+                 updateInCallStatus('Connected', 'in-call');
+             };
+     
+             const offer = await peerConnection.createOffer();
+             await peerConnection.setLocalDescription(offer);
+             console.log('Sending offer to receiver:', receiverId);
+             ws.send(JSON.stringify({
+                 type: 'offer',
+                 offer: offer,
+                 receiver_id: receiverId
+             }));
+     
+             // Send call initiation message
+             ws.send(JSON.stringify({
+                 type: 'call_initiate',
+                 receiver_id: receiverId
+             }));
+         } catch (error) {
+             console.error('Error initiating call:', error);
+             updateStatus('Error initiating call', 'ended');
+             toggleButtons(false);
+         }
+     }
+     
+     async function acceptCall() {
+         callPromptModal.hide();
+         updateStatus('Connecting...', 'connecting');
+         toggleButtons(true);
+         switchToInCallInterface(`User ${currentCallerId}`);
+     }
+     
+     async function rejectCall() {
+         callPromptModal.hide();
+         ws.send(JSON.stringify({
+             type: 'reject',
+             receiver_id: currentCallerId
+         }));
+         currentCallerId = null;
+     }
+     
+     async function handleOffer(offer, callerId) {
+         if (!peerConnection) {
+             peerConnection = new RTCPeerConnection(configuration);
+             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+     
+             peerConnection.onicecandidate = (event) => {
+                 if (event.candidate) {
+                     ws.send(JSON.stringify({
+                         type: 'ice_candidate',
+                         candidate: event.candidate,
+                         receiver_id: callerId
+                     }));
+                 }
+             };
+     
+             peerConnection.ontrack = (event) => {
+                 document.getElementById('remoteAudio').srcObject = event.streams[0];
+                 updateInCallStatus('Connected', 'in-call');
+             };
+         }
+     
+         try {
+             console.log('Setting remote offer, current state:', peerConnection.signalingState);
+             await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+             const answer = await peerConnection.createAnswer();
+             await peerConnection.setLocalDescription(answer);
+             console.log('Sending answer to caller:', callerId);
+             ws.send(JSON.stringify({
+                 type: 'answer',
+                 answer: answer,
+                 receiver_id: callerId
+             }));
+             switchToInCallInterface(`User ${callerId}`);
+         } catch (error) {
+             console.error('Error handling offer:', error);
+             updateStatus('Error handling offer', 'ended');
+             toggleButtons(false);
+             switchToMainInterface();
+         }
+     }
+     
+     async function handleAccept(receiverId) {
+         // Called by caller when receiver accepts
+         updateStatus('Call accepted, connecting...', 'connecting');
+         switchToInCallInterface(`User ${receiverId}`);
+     }
+     
+     async function handleAnswer(answer) {
+         if (!peerConnection) {
+             console.error('No peerConnection available for answer');
+             return;
+         }
+     
+         try {
+             console.log('Handling answer, current state:', peerConnection.signalingState);
+             if (peerConnection.signalingState === 'have-local-offer') {
+                 await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                 updateInCallStatus('Connected', 'in-call');
+             } else {
+                 console.warn('Ignoring answer due to invalid state:', peerConnection.signalingState);
+             }
+         } catch (error) {
+             console.error('Error handling answer:', error);
+             updateStatus('Error during call', 'ended');
+             toggleButtons(false);
+             switchToMainInterface();
+         }
+     }
+     
+     async function handleIceCandidate(candidate) {
+         try {
+             if (peerConnection) {
+                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+             }
+         } catch (error) {
+             console.error('Error handling ICE candidate:', error);
+         }
+     }
+     
+     function endCall() {
+         if (peerConnection) {
+             peerConnection.close();
+             peerConnection = null;
+         }
+         document.getElementById('remoteAudio').srcObject = null;
+         updateStatus('Call Ended', 'ended');
+         updateInCallStatus('Call Ended', 'ended');
+         toggleButtons(false);
+         switchToMainInterface();
+         currentCallerId = null;
+     }
+     
+     function updateStatus(text, className) {
+         callStatus.textContent = text;
+         callStatus.className = `call-status ${className || ''}`;
+     }
+     
+     function updateInCallStatus(text, className) {
+         inCallStatus.textContent = text;
+         inCallStatus.className = `call-status ${className || ''}`;
+     }
+     
+     function toggleButtons(isCalling) {
+         startCallBtn.disabled = isCalling;
+         endCallBtn.disabled = !isCalling;
+     }
+     
+     function switchToInCallInterface(partnerName) {
+         mainInterface.classList.add('d-none');
+         inCallInterface.classList.remove('d-none');
+         callPartner.textContent = `Calling with ${partnerName}`;
+     }
+     
+     function switchToMainInterface() {
+         mainInterface.classList.remove('d-none');
+         inCallInterface.classList.add('d-none');
+     }
+    </script>
+</body>
+</html>
+{% endblock %}

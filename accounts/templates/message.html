@@ -1,0 +1,190 @@
+{% load static %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulaire de Contact</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://netdna.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Styles personnalisés -->
+    <link rel="stylesheet" href="{% static 'css/stylee.css' %}"/>
+    <link rel="stylesheet" href="{% static 'css/styles_m.css' %}"/>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Message</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <form class="form-inline my-2 my-lg-0">
+                        <input class="form-control mr-sm-2" type="search" placeholder="Rechercher" aria-label="Search">
+                        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Rechercher</button>
+                    </form>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a href="{% url 'annuaire' %}" class="nav-link">Annuaire</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="user" class="profile-photo-sm">
+                        {{ user.username }}
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="#">Profil</a>
+                        <a class="dropdown-item" href="#">Paramètres</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{% url 'logout' %}">Déconnexion</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="form-container">
+        <div class="form">
+            <span class="heading">Envoyer un message</span>
+            <input placeholder="Nom d'utilisateur" type="text" class="input" id="username">
+            <input placeholder="Clé publique" type="text" class="input" id="publicKey" readonly>
+            <textarea placeholder="Votre message clair" rows="10" cols="30" id="clearMessage" class="textarea"></textarea>
+            <textarea placeholder="Message chiffré apparaîtra ici" rows="10" cols="30" id="encryptedMessage" class="textarea" readonly style="display: none;"></textarea>
+            <input type="hidden" id="chiffr">
+            <div class="button-container">
+                <div class="encrypt-button" id="encryptBtn">Chiffrer</div>
+                <div class="reset-button-container">
+                    <div id="reset-btn" class="reset-button">Reset</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
+    <script>
+        function encryptMessage(message, key) {
+            return fetch('/accounts/encrypt/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    message: message,
+                    public_key: key
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.encrypted_message) {
+                    return data;  // Retourne un objet contenant encrypted_message et c2
+                } else {
+                    throw new Error('Erreur de chiffrement : ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur :', error);
+                return null;
+            });
+        }
+        
+        
+        
+
+        function sendMessage(username, encryptedMessage,c2) {
+            return fetch('/accounts/send-message/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    encrypted_message: encryptedMessage,
+                    c2: c2
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    return data.success;
+                } else {
+                    throw new Error('Erreur d\'envoi : ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur :', error);
+                return null;
+            });
+        }
+
+        document.getElementById('encryptBtn').addEventListener('click', async function() {
+            var clearMessage = document.getElementById('clearMessage').value;
+            var publicKey = document.getElementById('publicKey').value;
+            var username = document.getElementById('username').value;
+
+            if (this.textContent === 'Chiffrer') {
+                var result = await encryptMessage(clearMessage, publicKey);
+
+                var encryptedMessageElement = document.getElementById('encryptedMessage');
+                var c2Element  = document.getElementById('chiffr');
+                encryptedMessageElement.value = result.encrypted_message; // Assigner le bon résultat
+                c2Element.value = result.c2; 
+                encryptedMessageElement.style.display = 'block';
+
+                this.textContent = 'Envoyer';
+            } else if (this.textContent === 'Envoyer') {
+                var encryptedMessage = document.getElementById('encryptedMessage').value;
+                var c2  = document.getElementById('chiffr').value;
+                var success = await sendMessage(username, encryptedMessage,c2);
+                if (success) {
+                    alert('Message envoyé avec succès!');
+                } else {
+                    alert('Erreur lors de l\'envoi du message.');
+                }
+            }
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', function() {
+            document.getElementById('clearMessage').value = '';
+            document.getElementById('encryptedMessage').value = '';
+            document.getElementById('encryptedMessage').style.display = 'none';
+            document.getElementById('publicKey').value = '';
+            document.getElementById('username').value = '';
+
+            var encryptBtn = document.getElementById('encryptBtn');
+            encryptBtn.textContent = 'Chiffrer';
+        });
+
+        $(document).ready(function () {
+            $('#username').on('input', function () {
+                const username = $(this).val().trim();
+
+                if (username) {
+                    $.ajax({
+                        url: '/accounts/get-public-key/',
+                        method: 'GET',
+                        data: { username: username },
+                        success: function (response) {
+                            if (response.public_key) {
+                                $('#publicKey').val(response.public_key);
+                            } else {
+                                $('#publicKey').val('Clé publique introuvable.');
+                            }
+                        },
+                        error: function () {
+                            $('#publicKey').val('Erreur lors de la récupération de la clé publique.');
+                        }
+                    });
+                } else {
+                    $('#publicKey').val('');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

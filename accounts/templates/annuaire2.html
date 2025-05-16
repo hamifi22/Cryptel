@@ -1,0 +1,175 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annuaire</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://netdna.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome pour les icônes -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Styles personnalisés -->
+  <link rel="stylesheet" href="{% static 'css/stylee.css' %}"/>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Annuaire</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <form class="form-inline my-2 my-lg-0">
+            <input class="form-control mr-sm-2" type="search" placeholder="Rechercher" aria-label="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Rechercher</button>
+          </form>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a href="{% url 'message' %}" class="nav-link">Messages</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="user" class="profile-photo-sm">
+            {{ user.username }}          
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <a class="dropdown-item" href="#">Profil</a>
+            <a class="dropdown-item" href="#">Paramètres</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{% url 'logout' %}">Déconnexion</a>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="container-fluid mt-4 h-100">
+    <div class="row h-100">
+      <!-- Annuaire -->
+      <div class="col-md-8 h-100">
+        <div class="people-nearby h-100 d-flex flex-column">
+          <div class="nearby-users-list flex-grow-1 overflow-auto">
+            {% for user_key in user_keys %}
+            <div class="nearby-user">
+              <div class="row">
+                <div class="col-md-2 col-sm-2">
+                  <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="user" class="profile-photo-lg">
+                </div>
+                <div class="col-md-7 col-sm-7">
+                  <h5><a href="#" class="profile-link">{{ user_key.user.username }}</a></h5>
+                  <p>{{ user_key.public_key }}</p>
+                  <p data-text="{{ user_key.public_key }}" onclick="copyText(this)" class="text-muted">Cliquer ici pour copier clé public</p>
+                </div>
+                <div class="col-md-3 col-sm-3">
+                  <button onclick="send_message(this)" data-receiver="{{ user_key.user.username }}" class="btn btn-primary btn-block btn-send-message">
+                    Envoyer un message
+                  </button>
+                  <!-- Bouton "+" pour ajouter à une catégorie -->
+                  <div class="dropdown mt-2">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ user_key.user.id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      +
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ user_key.user.id }}">
+                      <a class="dropdown-item" href="#" onclick="moveToCategory('{{ user_key.user.username }}', 'Travail')">Travail</a>
+                      <a class="dropdown-item" href="#" onclick="moveToCategory('{{ user_key.user.username }}', 'Personnel')">Personnel</a>
+                      <a class="dropdown-item" href="#" onclick="moveToCategory('{{ user_key.user.username }}', 'Famille')">Famille</a>
+                      <a class="dropdown-item" href="#" onclick="moveToCategory('{{ user_key.user.username }}', 'Amis')">Amis</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Widget Catégories -->
+      <div class="col-md-4 h-100">
+        <div class="card categories-card h-100">
+          <div class="card-header">
+            <h5 class="card-title">Catégories</h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-group categories-list">
+              {% for category, users in categorized_users.items %}
+                <li class="list-group-item category-item">
+                  <i class="fas fa-briefcase category-icon"></i>
+                  <span class="category-name">{{ category }}</span>
+                  <span class="badge badge-pill badge-primary">{{ users|length }}</span>
+                  <ul>
+                    {% for user in users %}
+                      <li>{{ user.user.username }}</li>
+                    {% endfor %}
+                  </ul>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification de copie -->
+  <div id="copy-notification" class="copy-notification">clé public copié !</div>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
+  <script>
+    function copyText(element) {
+      const textToCopy = element.getAttribute("data-text");
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+          const notification = document.getElementById("copy-notification");
+          notification.classList.add("show");
+          setTimeout(() => {
+            notification.classList.remove("show");
+          }, 2000);
+        })
+        .catch((err) => {
+          console.error("Échec de la copie : ", err);
+        });
+    }
+
+    function send_message(button) {
+      var receiver = button.getAttribute("data-receiver");
+      window.location.href = "/accounts/chat/" + encodeURIComponent(receiver) + "/";
+    }
+
+    function moveToCategory(username, category) {
+      fetch('/accounts/move-to-category/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+          username: username,
+          category: category
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(`Utilisateur ${username} déplacé vers la catégorie ${category}`);
+          window.location.reload();  // Rafraîchir la page pour afficher les changements
+        } else {
+          alert("Erreur : " + data.error);
+        }
+      })
+      .catch(error => {
+        console.error("Erreur : ", error);
+      });
+    }
+  </script>
+</body>
+</html>

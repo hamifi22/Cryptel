@@ -1,0 +1,882 @@
+{% load static %}
+{% load widget_tweaks %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>Signup - Secure Chat with PGP-ECC</title>
+  <style>
+    :root {
+      --primary-blue: #1e90ff;
+      --dark-blue: #004aad;
+      --white: #ffffff;
+      --light-gray: #f5f7fa;
+      --text-gray: #4a4a4a;
+      --text-dark: #1a1a1a;
+      --error-red: #e63946;
+      --success-green: #2ecc71;
+      --warning-yellow: #f1c40f;
+      --background-light: #f0f4f8;
+      --card-bg-light: #ffffff;
+      --glow: #1e90ff33;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    [data-theme="dark"] {
+      --primary-blue: #4dabff;
+      --dark-blue: #1e90ff;
+      --white: #0d1b2a;
+      --light-gray: #1b263b;
+      --text-gray: #e0e0e0;
+      --text-dark: #e0e0e0;
+      --background-light: #0d1b2a;
+      --card-bg-light: #1b263b;
+      --glow: #4dabff33;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, var(--background-light), var(--light-gray));
+      color: var(--text-gray);
+      transition: background 0.5s ease, color 0.3s ease;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .signup-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 80px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .signup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-content {
+      animation: fadeInUp 1s ease-out;
+    }
+
+    .hero-content h1 {
+      font-size: 3.2rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 20px;
+      line-height: 1.3;
+    }
+
+    .hero-content h1 span {
+      color: var(--primary-blue);
+      background: linear-gradient(45deg, var(--primary-blue), var(--dark-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+   
+
+    .hero-content p {
+      font-size: 1.1rem;
+      max-width: 500px;
+      margin-bottom: 30px;
+      color: var(--text-gray);
+      animation: fadeIn 1.5s ease-in;
+    }
+
+    .security-graphic {
+      max-width: 300px;
+      margin-top: 20px;
+      position: relative;
+      animation: pulse 3s infinite ease-in-out;
+    }
+
+    .security-graphic img {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 0 15px var(--glow));
+    }
+
+    .signup-card {
+      background: var(--card-bg-light);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: var(--shadow);
+      position: relative;
+      animation: fadeInUp 1s ease-out 0.2s;
+      animation-fill-mode: backwards;
+      transition: background 0.5s ease;
+    }
+
+    .signup-card h2 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .form-group.email-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--text-gray);
+      border-radius: 8px;
+      background: var(--light-gray);
+      color: var(--text-dark);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 8px var(--glow);
+    }
+
+    .form-group label {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      font-size: 0.9rem;
+      color: var(--text-gray);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .form-group input:focus + label,
+    .form-group input:not(:placeholder-shown) + label {
+      top: -10px;
+      left: 12px;
+      font-size: 0.75rem;
+      color: var(--primary-blue);
+      background: var(--card-bg-light);
+      padding: 0 6px;
+      border-radius: 4px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .toggle-password svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--text-gray);
+      transition: stroke 0.3s ease;
+    }
+
+    .toggle-password:hover svg {
+      stroke: var(--primary-blue);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(45deg, var(--primary-blue), var(--dark-blue));
+      color: var(--white);
+      box-shadow: 0 0 10px var(--glow);
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px var(--glow);
+    }
+
+    .btn-verify {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: linear-gradient(45deg, var(--primary-blue), var(--dark-blue));
+      color: var(--white);
+      border: none;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--glow);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      min-width: 100px;
+      transition: all 0.3s ease;
+    }
+    .btn-verify.loading .btn-text {
+    display: none;
+    }
+    .btn-verify.loading .btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+ .btn-verify .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--white);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    }
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Ensure button stays styled during loading */
+.btn-verify.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+    .btn-verify:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 12px var(--glow);
+      background: linear-gradient(45deg, var(--dark-blue), var(--primary-blue));
+    }
+
+    .btn-verify::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+      transform: translate(-50%, -50%) rotate(45deg);
+      transition: all 0.5s ease;
+      pointer-events: none;
+    }
+
+    .btn-verify:hover::before {
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
+
+    .btn-verify svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--white);
+    }
+
+    .error-message {
+      background: var(--error-red);
+      color: var(--white);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+      text-align: center;
+      animation: shake 0.3s ease;
+    }
+
+    .password-strength {
+      margin-top: 8px;
+      display: none;
+    }
+
+    .password-strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+
+    .password-strength-text {
+      font-size: 0.8rem;
+      margin-top: 4px;
+      text-align: left;
+    }
+
+    .strength-weak .password-strength-bar {
+      width: 33%;
+      background-color: var(--error-red);
+    }
+
+    .strength-weak .password-strength-text {
+      color: var(--error-red);
+    }
+
+    .strength-medium .password-strength-bar {
+      width: 66%;
+      background-color: var(--warning-yellow);
+    }
+
+    .strength-medium .password-strength-text {
+      color: var(--warning-yellow);
+    }
+
+    .strength-strong .password-strength-bar {
+      width: 100%;
+      background-color: var(--success-green);
+    }
+
+    .strength-strong .password-strength-text {
+      color: var(--success-green);
+    }
+
+    .confirm-password-message {
+      font-size: 0.8rem;
+      margin-top: 8px;
+      text-align: left;
+      display: none;
+    }
+
+    .confirm-password-message.valid {
+      color: var(--success-green);
+    }
+
+    .confirm-password-message.invalid {
+      color: var(--error-red);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .login-link a {
+      color: var(--primary-blue);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .login-link a:hover {
+      color: var(--dark-blue);
+      text-decoration: underline;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--primary-blue);
+      color: var(--white);
+      border: none;
+      padding: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--glow);
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background: var(--dark-blue);
+      transform: scale(1.1);
+    }
+
+    .wave-bg {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 200px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%231e90ff" fill-opacity="0.2" d="M0,160L48,170.7C96,181,192,203,288,192C384,181,480,139,576,122.7C672,107,768,117,864,149.3C960,181,1056,235,1152,245.3C1248,256,1344,224,1392,208L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+      z-index: 1;
+    }
+
+    @keyframes fadeInUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    @media (max-width: 768px) {
+      .signup-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+
+      .hero-content {
+        text-align: center;
+      }
+
+      .hero-content h1 {
+        font-size: 2rem;
+      }
+
+      .security-graphic {
+        max-width: 200px;
+        margin: 20px auto;
+      }
+
+      .signup-card {
+        padding: 20px;
+      }
+
+      .signup-section {
+        padding: 40px 0;
+      }
+
+      .form-group.email-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .btn-verify {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 3V5M12 19V21M5.636 5.636L7.05 7.05M16.95 16.95L18.364 18.364M3 12H5M19 12H21M5.636 18.364L7.05 16.95M16.95 7.05L18.364 5.636M12 17C9.239 17 7 14.761 7 12C7 9.239 9.239 7 12 7C14.761 7 17 9.239 17 12C17 14.761 14.761 17 12 17Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <div class="wave-bg"></div>
+  <section class="signup-section">
+    <div class="container">
+      <div class="signup-grid">
+        <div class="hero-content">
+          <h1>Fortify Your Conversations with <span>Unbreakable Security</span></h1>
+          <p>
+            Secure Chat with PGP-ECC delivers ironclad privacy through advanced PGP and Elliptic Curve Cryptography. Protect your messages with encryption trusted by the world's most sensitive communications.
+          </p>
+          <div class="security-graphic">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path fill="#1e90ff" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18L19.82 7v6c0 4.92-3.58 9.47-8.82 10.64C6.58 22.47 3 17.92 3 13V7l9-3.82z"/>
+            </svg>          </div>
+        </div>
+        <div class="signup-card">
+          <h2>Join the Secure Network</h2>
+          <form method="POST" id="signupForm">
+            {% csrf_token %}
+            <div class="form-group">
+              {{ form.first_name|add_class:"form-control" }}
+              <label>First Name</label>
+            </div>
+            <div class="form-group">
+              {{ form.last_name|add_class:"form-control" }}
+              <label>Last Name</label>
+            </div>
+            <div class="form-group">
+              {{ form.username|add_class:"form-control" }}
+              <label>Username</label>
+            </div>
+            <div class="form-group email-group">
+    {{ form.email|add_class:"form-control" }}
+    <label>Email Address</label>
+    <button type="button" id="confirmEmailBtn" class="btn-verify" style="display: none;">
+        <span class="btn-text">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zM12 11L4 6h16l-8 5z"/>
+            </svg>
+            Verify
+        </span>
+        <span class="btn-loading" style="display: none;">
+            <svg class="spinner" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="var(--white)" stroke-width="4" fill="none" stroke-dasharray="31.4 31.4" stroke-dashoffset="0">
+                    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+            Sending...
+        </span>
+    </button>
+</div>
+            <div class="form-group" id="verificationCodeDiv" style="display: none;">
+              <input type="text" name="verification_code"  class="form-control" />
+              <label>Verification Code</label>
+            </div>
+            <div id="errorMessages" class="error-message"></div>
+            <div class="form-group">
+              <input type="password" name="password"  class="form-control" id="passwordInput" required />
+              <label>Password</label>
+              <button type="button" class="toggle-password" data-target="passwordInput">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 3l18 18M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/>
+                </svg>
+              </button>
+              <div class="password-strength" id="passwordStrength">
+                <div class="password-strength-bar"></div>
+                <div class="password-strength-text"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <input type="password" name="confirm_password"  class="form-control" id="confirmPasswordInput" required />
+              <label>Confirm Password</label>
+              <button type="button" class="toggle-password" data-target="confirmPasswordInput">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 3l18 18M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/>
+                </svg>
+              </button>
+              <div class="confirm-password-message" id="confirmPasswordMessage"></div>
+            </div>
+
+            <input type="hidden" name="derived_key" />
+            <input type="hidden" name="salt" />
+            <input type="hidden" name="salt_session" />
+            <input type="hidden" name="public_key" />
+            <input type="hidden" name="encrypted_private_key" />
+
+            <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+            <p class="login-link">Already secured? <a href="{% url 'login' %}">Log In</a></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scripts -->
+  <script src="{% static 'js/utils.js' %}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script>
+    // Function to show error messages in the red errorMessages div
+    function showError(message) {
+        const errorDiv = document.getElementById("errorMessages");
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+        setTimeout(() => { errorDiv.style.display = "none"; }, 5000);
+    }
+
+    // Password strength checker
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        const minLength = 12;
+        const hasUpper = /[A-Z]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (password.length >= minLength) strength += 1;
+        if (hasUpper) strength += 1;
+        if (hasLower) strength += 1;
+        if (hasNumber) strength += 1;
+        if (hasSpecial) strength += 1;
+
+        if (strength <= 2) {
+            return { level: 'weak', score: strength, message: 'Weak: Use at least 12 characters, including uppercase, lowercase, numbers, and special characters.' };
+        } else if (strength <= 4) {
+            return { level: 'medium', score: strength, message: 'Medium: Add more character types for a stronger password.' };
+        } else {
+            return { level: 'strong', score: strength, message: 'Strong: Your password is secure!' };
+        }
+    }
+
+    // Password strength feedback
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const strengthBar = passwordStrength.querySelector('.password-strength-bar');
+    const strengthText = passwordStrength.querySelector('.password-strength-text');
+
+    passwordInput.addEventListener('input', () => {
+        const password = passwordInput.value;
+        if (password.length > 0) {
+            passwordStrength.style.display = 'block';
+            const { level, message } = checkPasswordStrength(password);
+            passwordStrength.className = `password-strength strength-${level}`;
+            strengthText.textContent = message;
+        } else {
+            passwordStrength.style.display = 'none';
+        }
+        confirmPasswordInput.dispatchEvent(new Event('input'));
+    });
+
+    // Confirm password validation
+    const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+    const confirmPasswordMessage = document.getElementById('confirmPasswordMessage');
+
+    confirmPasswordInput.addEventListener('input', () => {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        if (confirmPassword.length > 0) {
+            confirmPasswordMessage.style.display = 'block';
+            if (password === confirmPassword) {
+                confirmPasswordMessage.textContent = 'Passwords match!';
+                confirmPasswordMessage.className = 'confirm-password-message valid';
+            } else {
+                confirmPasswordMessage.textContent = 'Passwords do not match.';
+                confirmPasswordMessage.className = 'confirm-password-message invalid';
+            }
+        } else {
+            confirmPasswordMessage.style.display = 'none';
+        }
+    });
+
+    // Show/hide password toggles
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            button.querySelector('svg').innerHTML = isPassword
+                ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/>'
+                : '<path d="M3 3l18 18M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2"/>';
+        });
+    });
+
+    // Email input and verification
+    const emailInput = document.querySelector('[name="email"]');
+    const confirmEmailBtn = document.getElementById("confirmEmailBtn");
+    const verificationCodeDiv = document.getElementById("verificationCodeDiv");
+    const verificationCodeInput = document.querySelector('[name="verification_code"]');
+    let verificationCodeSent = false;
+
+    emailInput.addEventListener("input", () => {
+        if (emailInput.value.trim() && /.+@.+\..+/.test(emailInput.value)) {
+            confirmEmailBtn.style.display = "flex";
+        } else {
+            confirmEmailBtn.style.display = "none";
+            verificationCodeDiv.style.display = "none";
+            verificationCodeSent = false;
+        }
+    });
+
+confirmEmailBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const button = confirmEmailBtn;
+    
+    // Start loading animation
+    button.classList.add("loading");
+    button.disabled = true; // Disable button to prevent multiple clicks
+    
+    try {
+        const response = await fetch("{% url 'send_verification_code' %}", {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                "Accept": "application/json",
+            },
+            body: JSON.stringify({ email }),
+        });
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Unexpected response from server.");
+        }
+
+        const result = await response.json();
+        if (response.ok) {
+            alert("Verification code sent to your email!");
+            verificationCodeDiv.style.display = "block";
+            confirmEmailBtn.style.display = "none";
+            verificationCodeSent = true;
+        } else {
+            showError(result.error || "Failed to send verification code.");
+        }
+    } catch (error) {
+        showError(error.message || "An error occurred while sending the verification code.");
+    } finally {
+        // Stop loading animation
+        button.classList.remove("loading");
+        button.disabled = false;
+    }
+});
+    // Form submission
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+        e.preventDefault(); // Prevent default form submission
+
+        // Client-side validation
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        const email = emailInput.value.trim();
+        const firstName = document.querySelector('[name="first_name"]').value.trim();
+        const lastName = document.querySelector('[name="last_name"]').value.trim();
+        const username = document.querySelector('[name="username"]').value.trim();
+        const { level } = checkPasswordStrength(password);
+
+        if (!firstName) {
+            showError("First name is required.");
+            return;
+        }
+        if (!lastName) {
+            showError("Last name is required.");
+            return;
+        }
+        if (!username) {
+            showError("Username is required.");
+            return;
+        }
+        if (!email) {
+            showError("Email is required.");
+            return;
+        }
+        if (!/.+@.+\..+/.test(email)) {
+            showError("Please enter a valid email address.");
+            return;
+        }
+        if (!verificationCodeSent && email) {
+            showError("Please click 'Verify' to send a verification code to your email.");
+            return;
+        }
+        if (verificationCodeDiv.style.display === "block" && !verificationCodeInput.value.trim()) {
+            showError("Please enter the verification code.");
+            return;
+        }
+        if (!password) {
+            showError("Password is required.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            showError("Passwords do not match!");
+            return;
+        }
+        if (level === 'weak') {
+            showError("Your password is too weak. Please use a stronger password.");
+            return;
+        }
+
+        try {
+            // Prepare cryptographic data
+            const saltBytes = generateSalt();
+            const derivedpassword = await derivePBKDF2(password, saltBytes);
+            console.log("Derived key (hex):", toHex(derivedpassword));
+
+            let { S_base64, Pk } = await generateKeys();
+            const saltByte2 = generateSalt();
+            console.log(toHex(saltByte2));
+
+            const key_seesion_normal = await derivePBKDF2(password, saltByte2);
+            const k_bytes = key_seesion_normal.slice(0, 32);
+
+            const S_crypted = await encrypt_aes_cbc(S_base64, k_bytes);
+            console.log(S_crypted);
+            const key_seesion = btoa(String.fromCharCode(...key_seesion_normal));
+            sessionStorage.setItem('secretKey', key_seesion);
+
+            // Set hidden fields
+            document.querySelector('[name="public_key"]').value = Pk;
+            document.querySelector('[name="encrypted_private_key"]').value = S_crypted;
+            document.querySelector('[name="salt_session"]').value = toHex(saltByte2);
+            document.querySelector('[name="derived_key"]').value = toHex(derivedpassword);
+            document.querySelector('[name="salt"]').value = toHex(saltBytes);
+
+            // Clear sensitive fields
+            passwordInput.value = "";
+            confirmPasswordInput.value = "";
+
+            // Submit form via AJAX
+            const formData = new FormData(document.getElementById("signupForm"));
+            const response = await fetch("{% url 'signup' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                    "Accept": "application/json",
+                },
+                body: formData,
+            });
+
+            // Verify response is JSON
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Unexpected response from server. Please try again.");
+            }
+
+            const result = await response.json();
+
+            if (result.status === "success") {
+                // Redirect on success
+                window.location.href = result.redirect_url;
+            } else {
+                // Handle server-side errors
+                const errors = result.errors || {};
+                if (errors.verification_code) {
+                    showError(errors.verification_code[0]);
+                } else if (errors.email) {
+                    showError(errors.email[0]);
+                } else if (errors.username) {
+                    showError(errors.username[0]);
+                } else if (errors.first_name) {
+                    showError(errors.first_name[0]);
+                } else if (errors.last_name) {
+                    showError(errors.last_name[0]);
+                } else if (errors.__all__) {
+                    showError(errors.__all__[0]);
+                } else {
+                    showError(result.message || "Signup failed. Please check your input and try again.");
+                }
+            }
+        } catch (error) {
+            showError(error.message || "An error occurred during signup. Please try again.");
+        }
+    });
+
+    // Theme toggle
+    function toggleTheme() {
+        const body = document.body;
+        const currentTheme = body.getAttribute("data-theme");
+        if (currentTheme === "dark") {
+            body.removeAttribute("data-theme");
+        } else {
+            body.setAttribute("data-theme", "dark");
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annuaire</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- Bootstrap CSS -->
+  <link href="https://netdna.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome pour les icônes -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Styles personnalisés -->
+  <link rel="stylesheet" href="{% static 'css/stylee.css' %}"/>
+  <script src="{% static 'js/utils.js' %}"></script>
+</head>
+<body class="light-mode">
+    
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">Annuaire</div>
+    <div class="navbar-search">
+      <input type="search" id="user-search" placeholder="Rechercher..." aria-label="Search">
+      <button class="btn btn-search"><i class="fas fa-search"></i></button>
+      <div id="search-results" class="search-results-dropdown"></div>
+    </div>
+    <div class="navbar-actions">
+    <a href="{% url 'chatting' %}" class="nav-link">
+        <i class="fas fa-envelope"></i> Messages
+        <span id="message-count-badge" class="badge badge-messages" style="display: none;"></span>
+    </a>
+    <div class="dark-mode-toggle">
+        <i class="fas fa-moon"></i>
+    </div>
+    <div class="nav-profile" data-toggle="dropdown">
+        <img src="{% if user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" alt="user" class="profile-photo">
+        <span>{{ user.username }}</span>
+        <div class="profile-dropdown">
+            <a href="{% url 'profil' %}">Profil</a>
+            <a href="#">Paramètres</a>
+            <a href="{% url 'logout' %}">Déconnexion</a>
+        </div>
+    </div>
+</div>
+</nav>
+
+<div id="notification-container" style="position: fixed; top: 80px; right: 20px; z-index: 2000;"></div>
+<script>
+// Track notified message IDs
+const notifiedMessages = new Set();
+
+function updateMessageCount() {
+    {% if user.is_authenticated %}
+    fetch("{% url 'get_message_count' %}", {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update message count badge
+        const badge = document.getElementById('message-count-badge');
+        if (data.message_count > 0) {
+            badge.textContent = data.message_count;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        // Show notifications for new messages
+        data.new_messages.forEach(message => {
+            if (!notifiedMessages.has(message.id)) {
+                showNotification(message.sender, message.timestamp);
+                notifiedMessages.add(message.id);
+            }
+        });
+    })
+    .catch(error => console.error('Error fetching message count:', error));
+    {% endif %}
+}
+
+function showNotification(sender, timestamp) {
+    new Audio('../static/sound/new_message.mp3').play();
+    const container = document.getElementById('notification-container');
+    const notificationId = `notification-${Date.now()}`;
+    
+    const notificationHtml = `
+        <div id="${notificationId}" class="notification" onclick="window.location.href='/accounts/chat/${sender}/'">
+            <i class="fas fa-envelope notification-icon"></i>
+            <div class="notification-content">
+                <div class="notification-message">${sender} a envoyé un message</div>
+                <div class="notification-time">${timestamp}</div>
+            </div>
+            <button class="notification-close" onclick="hideNotification('${notificationId}')">×</button>
+            <div class="notification-progress"></div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('afterbegin', notificationHtml);
+    
+    const notification = document.getElementById(notificationId);
+    setTimeout(() => hideNotification(notificationId), 5000); // Disappear after 5 seconds
+}
+
+function hideNotification(notificationId) {
+    const notification = document.getElementById(notificationId);
+    if (notification) {
+        notification.classList.add('hide');
+        setTimeout(() => notification.remove(), 500); // Remove after animation
+    }
+}
+
+// Run immediately and then every 10 seconds
+updateMessageCount();
+setInterval(updateMessageCount, 3000);
+</script>
+  <!-- Contenu principal -->
+  <div class="container">
+    <div class="row">
+      <!-- Categories Widget -->
+      <div class="col-md-4">
+        <div class="categories-card">
+          <h2>Catégories</h2>
+          <ul class="categories-list">
+            <li class="category-item active" onclick="showAllUsers()">
+              <i class="fas fa-users"></i>
+              <span>Tous les contacts</span>
+              <span class="badge">{{ user_keys.count }}</span>
+            </li>
+            {% for category, users in categorized_users.items %}
+              <li class="category-item" onclick="showUsersInCategory('{{ category }}')">
+                <i class="fas fa-briefcase"></i>
+                <span>{{ category }}</span>
+                <span class="badge">{{ users|length }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+  
+      <!-- User List -->
+      <div class="col-md-8">
+        <div class="user-card-container" id="user-list-container">
+          <div class="user-list" id="user-list">
+            {% for user_key in user_keys %}
+              <div class="user-card">
+                <div class="user-card-header">
+                  <img src="{% if user_key.user.profile.profile_picture %}{{ user_key.user.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" alt="user" class="user-avatar">
+                  <div class="user-info">
+                    <h5>{{ user_key.user.username }}</h5>
+                    <p class="public-key" data-text="{{ user_key.public_key }}" onclick="copyText(this)">
+                      <i class="fas fa-key"></i> {{ user_key.public_key|truncatechars:15 }}
+                    </p>
+                    <p class="copy-hint">Cliquer pour copier la clé publique</p>
+                  </div>
+                </div>
+                <div class="user-card-actions">
+                  <button onclick="send_message(this)" data-receiver="{{ user_key.user.username }}" class="btn btn-message">
+                    <i class="fas fa-envelope"></i> Message
+                  </button>
+                  <div class="category-dropdown">
+                  <button class="btn btn-category" aria-label="Select Category">
+                     <i class="fas fa-plus"></i>
+                  </button>
+    <div class="dropdown-content">
+      <a href="#" onclick="event.preventDefault(); moveToCategory('{{ user_key.user.username }}', 'Travail')">Travail</a>
+      <a href="#" onclick="event.preventDefault(); moveToCategory('{{ user_key.user.username }}', 'Personnel')">Personnel</a>
+      <a href="#" onclick="event.preventDefault(); moveToCategory('{{ user_key.user.username }}', 'Famille')">Famille</a>
+      <a href="#" onclick="event.preventDefault(); moveToCategory('{{ user_key.user.username }}', 'Amis')">Amis</a>
+      <a href="#" onclick="event.preventDefault(); moveToCategory('{{ user_key.user.username }}', 'Non classé')">Non classé</a>
+    </div>
+      </div>
+          </div>
+        </div>
+
+            {% endfor %}
+
+      </div>
+  </div>
+
+  <!-- Notification de copie -->
+  <div id="copy-notification" class="copy-notification">Clé publique copiée !</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // User search functionality
+      $('#user-search').on('input', function() {
+          const searchTerm = $(this).val().trim();
+          const resultsContainer = $('#search-results');
+          
+          if (searchTerm.length < 2) {
+              resultsContainer.empty().hide();
+              return;
+          }
+          
+          $.ajax({
+              url: '/accounts/search_users/',
+              data: {
+                  'term': searchTerm
+              },
+              dataType: 'json',
+              success: function(data) {
+                  if (data.length > 0) {
+                      let html = '';
+                      data.forEach(function(user) {
+                          html += `
+                          <div class="search-result-item">
+                              <img src="${user.profile_picture}" alt="${user.username}" class="search-result-photo">
+                              <div class="search-result-info">
+                                  <span class="search-result-username">${user.username}</span>
+                                  ${user.full_name ? `<span class="search-result-name">${user.full_name}</span>` : ''}
+                              </div>
+                              <a href="/accounts/chat/${encodeURIComponent(user.username)}/" class="search-result-link"></a>
+                          </div>`;
+                      });
+                      resultsContainer.html(html).show();
+                  } else {
+                      resultsContainer.html('<div class="search-no-results">Aucun résultat trouvé</div>').show();
+                  }
+              },
+              error: function() {
+                  resultsContainer.html('<div class="search-error">Erreur lors de la recherche</div>').show();
+              }
+          });
+      });
+      
+      // Hide results when clicking outside
+      $(document).on('click', function(e) {
+          if (!$(e.target).closest('.navbar-search').length) {
+              $('#search-results').hide();
+          }
+      });
+  });
+    </script>
+  <script>
+    // Fonction pour récupérer les cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function copyText(element) {
+      const textToCopy = element.getAttribute("data-text");
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const notification = document.getElementById("copy-notification");
+        notification.classList.add("show");
+        setTimeout(() => notification.classList.remove("show"), 2000);
+      }).catch(err => console.error("Échec de la copie : ", err));
+    }
+
+    function send_message(button) {
+      const receiver = button.getAttribute("data-receiver");
+      window.location.href = `/accounts/chat/${encodeURIComponent(receiver)}/`;
+    }
+
+    function moveToCategory(username, category) {
+      if (!username || !category) {
+        console.error("Username or category is missing");
+        return;
+      }
+
+      fetch('/accounts/move-to-category/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          username: username,
+          category: category === "Non classé" ? null : category
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          const currentCategory = document.querySelector('.category-item.active').textContent.trim();
+          if (currentCategory.includes("Tous") || currentCategory.includes(category) || currentCategory.includes("Non classé")) {
+            showUsersInCategory(currentCategory.includes("Tous") ? "Tous" : currentCategory);
+          }
+        } else {
+          alert("Erreur: " + (data.error || "Échec du déplacement"));
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        alert("Une erreur réseau est survenue");
+      });
+    }
+
+    function showUsersInCategory(category) {
+      // Mettre à jour l'interface pour montrer quelle catégorie est active
+      document.querySelectorAll('.category-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.textContent.includes(category) || 
+            (category === "Tous" && item.textContent.includes("Tous les contacts"))) {
+          item.classList.add('active');
+        }
+      });
+
+      fetch(`/accounts/get-users-in-category/?category=${encodeURIComponent(category)}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          const userList = document.getElementById('user-list');
+          userList.innerHTML = '';
+          
+          if (data.users && data.users.length > 0) {
+            data.users.forEach(user => {
+                        const avatarUrl = user.url_profil || "https://bootdey.com/img/Content/avatar/avatar7.png";
+
+              const userElement = `
+                <div class="user-card" data-category="${user.category || 'Non classé'}">
+                  <div class="user-card-header">
+ <img src="${avatarUrl}" alt="user" class="user-avatar" onerror="this.src='https://bootdey.com/img/Content/avatar/avatar7.png'">
+                     <div class="user-info">
+                      <h5>${user.username}</h5>
+                      <p class="public-key" data-text="${user.public_key}" onclick="copyText(this)">
+                        <i class="fas fa-key"></i> ${user.public_key.substring(0, 15)}...
+                      </p>
+                      ${category === "Tous" ? `<span class="category-badge">${user.category || 'Non classé'}</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="user-card-actions">
+                    <button onclick="send_message(this)" data-receiver="${user.username}" class="btn btn-message">
+                      <i class="fas fa-envelope"></i> Message
+                    </button>
+                    <div class="category-dropdown">
+                      <button class="btn btn-category">+</button>
+                      <div class="dropdown-content">
+                        <a href="#" onclick="event.preventDefault(); moveToCategory('${user.username}', 'Travail')">Travail</a>
+                        <a href="#" onclick="event.preventDefault(); moveToCategory('${user.username}', 'Personnel')">Personnel</a>
+                        <a href="#" onclick="event.preventDefault(); moveToCategory('${user.username}', 'Famille')">Famille</a>
+                        <a href="#" onclick="event.preventDefault(); moveToCategory('${user.username}', 'Amis')">Amis</a>
+                        <a href="#" onclick="event.preventDefault(); moveToCategory('${user.username}', 'Non classé')">Non classé</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              userList.insertAdjacentHTML('beforeend', userElement);
+            });
+          } else {
+            userList.innerHTML = '<p class="no-users">Aucun utilisateur dans cette catégorie.</p>';
+          }
+        })
+        .catch(error => {
+          console.error("Erreur : ", error);
+          document.getElementById('user-list').innerHTML = 
+            '<p class="no-users">Erreur lors du chargement des utilisateurs</p>';
+        });
+    }
+
+    function showAllUsers() {
+      showUsersInCategory("Tous");
+    }
+
+
+    const key = sessionStorage.getItem("secretKey");
+    console.log("clé session :",key );
+
+
+// AJAX request to get the secret key
+// You can use the conversation ID dynamically
+
+ $(document).ready(function() {
+    // You can use the conversation ID dynamically
+    
+    $.ajax({
+        url: '/accounts/get_secret_key/' , // URL to the view
+        method: 'GET',
+        success: async function (response) { // <--- make this async
+          if (response.secret_key) {
+              const sessionKey = sessionStorage.getItem("secretKey");
+              console.log(sessionKey);
+              if (sessionKey) {
+                  try {
+                     const fullKey = base64ToUint8Array(sessionKey); // Ta clé en base64
+                     const new_k2_bytes = fullKey.slice(0, 32); // Pour AES-256
+                    
+                      const decryptedKey = await decrypt_aes_cbc(response.secret_key, new_k2_bytes);
+                      console.log(decryptedKey);
+                      sessionStorage.setItem('privateKey', decryptedKey);
+
+
+
+                          // Inject into the input if needed
+
+                      // Optionally, display it or use it further
+                  } catch (error) {
+                      console.error("Decryption failed:", error);
+                  }
+            } else {
+                // Handle the case when no key is found
+
+            }
+          }
+        },
+
+        error: function() {
+            $('#secret-key').text('Error retrieving secret key');
+        }
+    });
+
+});
+async function decryptAesCbc(encryptedBase64, keyBase64) {
+const encryptedData = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+const iv = encryptedData.slice(0, 16);
+const ciphertext = encryptedData.slice(16);
+
+const cryptoKey = await window.crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'AES-CBC' },
+    false,
+    ['decrypt']
+);
+
+const decrypted = await window.crypto.subtle.decrypt(
+    {
+        name: 'AES-CBC',
+        iv: iv
+    },
+    cryptoKey,
+    ciphertext
+);
+
+return new TextDecoder().decode(decrypted);
+}
+function base64ToUint8Array(base64) {
+return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+}
+
+
+    // Initialisation
+    $(document).ready(function() {
+      // Charger tous les utilisateurs au démarrage
+      showAllUsers();
+
+      // Gestion du dark mode
+      document.querySelector('.dark-mode-toggle').addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        document.body.classList.toggle('light-mode');
+        const icon = document.querySelector('.dark-mode-toggle i');
+        icon.classList.toggle('fa-moon');
+        icon.classList.toggle('fa-sun');
+      });
+
+      // Gestion du dropdown du profil
+      $('.nav-profile').on('click', function(e) {
+        if (!$(e.target).is('a')) {
+          e.stopPropagation();
+          $(this).find('.profile-dropdown').toggleClass('show');
+        }
+      });
+
+      // Fermer le dropdown quand on clique ailleurs
+      $(document).on('click', function(e) {
+        if (!$(e.target).closest('.nav-profile').length) {
+          $('.profile-dropdown').removeClass('show');
+        }
+      });
+    });
+    
+
+
+
+   $(document).ready(function() {
+  // Toggle category dropdown on click
+  $(document).on('click', '.btn-category', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Close all other dropdowns first
+    $('.dropdown-content').not($(this).next('.dropdown-content')).removeClass('show');
+    
+    // Toggle current dropdown
+    $(this).next('.dropdown-content').toggleClass('show');
+    
+    // Add active state to button
+    $('.btn-category').not(this).removeClass('active');
+    $(this).toggleClass('active');
+  });
+
+  // Close dropdowns when clicking outside
+  $(document).on('click', function(e) {
+    if (!$(e.target).closest('.category-dropdown').length) {
+      $('.dropdown-content').removeClass('show');
+      $('.btn-category').removeClass('active');
+    }
+  });
+
+  // Prevent dropdown from closing when clicking inside
+  $(document).on('click', '.dropdown-content', function(e) {
+    e.stopPropagation();
+  });
+});
+  </script>
+</body>
+</html>

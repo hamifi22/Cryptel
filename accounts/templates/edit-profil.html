@@ -1,0 +1,167 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile</title>
+    <link rel="stylesheet" href="{% static 'css/style_e_p.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="profile-card">
+                <div class="profile-picture">
+                 <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="user" class="profile-photo-sm">
+                 <input type="file" id="profile-picture" accept="image/*" class="file-input">
+                </div>
+                <div class="progress-bar">
+                    <label>Profile Completion</label>
+                    <progress value="80" max="100"></progress>
+                    <span>80%</span>
+                </div>
+                <div class="theme-toggle">
+                    <label><i class="fas fa-moon"></i> Dark Mode</label>
+                    <input type="checkbox" id="theme-toggle">
+                </div>
+                <div class="quick-links">
+                    <a href="{% url 'profil' %}" class="btn btn-link"><i class="fas fa-user"></i> View Profile</a>
+                    <a href="#" class="btn btn-link"><i class="fas fa-cog"></i> Account Settings</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Form (Unchanged) -->
+        <main class="form-container">
+            <form method="post" action="{% url 'edit_profil' %}">
+                {% csrf_token %}
+                <header class="sticky-header">
+                    <h1>Edit Profile</h1>
+                    <div class="actions">
+                        <a href="{% url 'profil' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </header>
+
+            <!-- Personal Information -->
+            <section class="section">
+                <h2><i class="fas fa-user-edit"></i> Personal Information</h2>
+                <div class="form-group">
+                    <label for="username"><i class="fas fa-user"></i> Username</label>
+                    <input type="text" id="username" value="{{ user.username }}" >
+                    <span class="status available">Available</span>
+                </div>
+                <div class="form-group">
+                    <label for="first_name"><i class="fas fa-id-card"></i> First Name</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}">
+                </div>
+                <div class="form-group">
+                    <label for="last_name"><i class="fas fa-id-card"></i> Last Name</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}">
+                </div>
+            
+                <div class="form-group">
+                    <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" >
+                    <span class="status verified">Verified</span>
+                </div>
+            </section>
+
+            <!-- Change Password -->
+            <section class="section">
+                <h2><i class="fas fa-lock"></i> Change Password</h2>
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" >
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" >
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <input type="password" id="confirm-password" >
+                    <button class="btn btn-primary">Change Password</button>
+                </div>
+            </section>
+
+            <!-- Information Security -->
+            <section class="section">
+                <h2><i class="fas fa-shield-alt"></i> Information Security</h2>
+                {% if user_key %}
+                <div class="form-group">
+                    <label for="public-key" class="tooltip">
+                        Public Key
+                        <span class="tooltip-text">Used for secure communication</span>
+                    </label>
+                    <textarea id="public-key" readonly>{{ user_key.public_key }}</textarea>
+                    <div class="key-actions">
+                        <button type="button" class="btn btn-secondary" onclick="copyToClipboard('public-key')">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <h3>Devices Login</h3>
+                    <ul class="device-list">
+                        <li>
+                            <div class="device-info">
+                                <strong>iPhone 14</strong>
+                                <p>Last Active: 2025-04-29 10:30 AM</p>
+                                <p>Location: New York, USA</p>
+                            </div>
+                            <button class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                        </li>
+                        <li>
+                            <div class="device-info">
+                                <strong>Chrome on Windows</strong>
+                                <p>Last Active: 2025-04-28 09:15 PM</p>
+                                <p>Location: London, UK</p>
+                            </div>
+                            <button class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                        </li>
+                    </ul>
+                    <button class="btn btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout All Devices</button>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        // Dark Mode Toggle
+   const themeToggleBtn = document.querySelector('.theme-toggle-btn');
+   if (themeToggleBtn) {
+       themeToggleBtn.addEventListener('click', () => {
+           document.body.classList.toggle('dark-mode');
+           themeToggleBtn.classList.toggle('active');
+       });
+   }
+   
+   // Share Button
+   const shareButton = document.querySelector('.btn-share');
+   if (shareButton) {
+       shareButton.addEventListener('click', () => {
+           alert('Share functionality coming soon! Copy profile URL or share to social media.');
+           // Example: Copy link to clipboard
+           // navigator.clipboard.writeText(window.location.href);
+       });
+   }
+   
+   // Log Out Confirmation
+   const logoutLinks = document.querySelectorAll('.nav-link.logout');
+   logoutLinks.forEach(link => {
+       link.addEventListener('click', (event) => {
+           event.preventDefault();
+           if (confirm('Are you sure you want to log out?')) {
+               // Redirect to Django logout URL (adjust as needed)
+               window.location.href = '/logout'; // Replace with {% url 'logout' %}
+           }
+       });
+   });
+       </script>
+    </body>
+</html>

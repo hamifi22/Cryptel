@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h2>Welcome ici , {{ user.username }}!</h2>
+    <pre>{{ public_key }}</pre>
+    <a href="{% url 'chatting' %}">conversation</a>
+    <a href="{% url 'message' %}">message</a>
+    <a href="{% url 'dechf' %}">dechf</a>
+    <a href="{% url 'annuaire' %}">annuaire</a>
+    <a href="{% url 'logout' %}">Logout</a>
+    
+    <script>
+        const key = sessionStorage.getItem("secretKey");
+        if (key) {
+            console.log("Key from sessionStorage:", key);
+        } else {
+            console.warn("No encryption key found in sessionStorage.");
+        }
+    </script>
+
+    <h2>Crypto Keys</h2>
+    <pre id="result">Generating keys...</pre>
+
+    <script type="module">
+        import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.mjs";
+    
+        let pyodide;
+    
+        async function init() {
+            pyodide = await loadPyodide();
+            const utilCode = await fetch("/static/python/utils.py").then(res => res.text());
+            await pyodide.loadPackage("gmpy2");
+            await pyodide.loadPackage("pycryptodome");
+            await pyodide.runPythonAsync(utilCode);
+            return pyodide;
+        }
+        
+        async function generateAndDisplayKeys() {
+            try {
+                document.getElementById("result").textContent = "Generating keys...";
+                
+                await pyodide.runPythonAsync(`
+                    private_key, public_key = generate_keys()
+                `);
+            
+                const privateKey = pyodide.globals.get("private_key");
+                const publicKey = pyodide.globals.get("public_key");
+                
+                console.log("Private Key:", privateKey);
+                console.log("Public Key:", publicKey);
+                
+                document.getElementById("result").textContent =
+                    "🔑 Private Key:\n" + privateKey + "\n\n🔐 Public Key:\n" + publicKey;
+            } catch (error) {
+                console.error("Error generating keys:", error);
+                document.getElementById("result").textContent = "Error generating keys: " + error.message;
+            }
+        }
+        
+        // Initialize and generate keys automatically
+        init()
+            .then(() => generateAndDisplayKeys())
+            .catch(error => {
+                console.error("Initialization error:", error);
+                document.getElementById("result").textContent = "Initialization failed: " + error.message;
+            });
+    </script>
+</body>
+</html>

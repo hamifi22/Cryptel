@@ -1,0 +1,1875 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>conversation</title>
+    <!-- FontAwesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Font Awesome CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style_c.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="{% static 'js/utils.js' %}"></script>
+    <style>
+
+      
+      .navbar {
+          position: retaive;
+          top: 0;
+          height:56px;
+          width: 100%;
+          z-index: 1000;
+          box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      }
+      .dropdown-menu{
+        height:93px;
+      }
+      .app {
+          top: 0;
+          height: calc(100vh - 140px);
+          width: 100;
+          margin-right:0;
+          margin-left:0;      
+        }
+  
+      .navbar-nav.right-items {
+          margin-left: auto;
+          float:right;
+      }
+      .right_item a:hover{
+        color:black;
+      }
+      .profile-photo-sm {
+          margin-right: 8px;
+      }
+      .linkit{
+        text-decoration: none;
+        margin-right:9px;
+        margin-top: 9px;
+      }
+      @media (max-width: 991.98px) {
+
+          .app {
+              margin-top: 6px;
+          }
+          .navbar-nav.right-items {
+              margin-left: 12px;
+          }
+      }
+     @media screen and (max-width: 600px) {
+    .side{
+    display: none;
+  }
+
+} 
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" href="#">messagerie</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+   
+      <ul class="navbar-nav right-items">
+          <li class="nav-item linkit">
+              <a href="{% url 'annuaire' %}" class="nav-link">Annuaire</a>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link btn btn-link" id="themeToggle" aria-label="Toggle dark mode">
+                <i class="fas fa-moon"></i> <!-- Moon icon for dark mode -->
+            </button>
+          </li>
+          <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <img src="{% if user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" alt="user" class="profile-photo-sm">
+                  {{ user.username }}          
+              </a>
+              <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <a class="dropdown-item" href="{% url 'profil' %}">Profil</a>
+                  <a class="dropdown-item" href="#">Paramètres</a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="{% url 'logout' %}">Déconnexion</a>
+              </div>
+          </li>
+      </ul>
+  </div>
+</nav>
+
+  
+ 
+<div class="container app">
+  <div class="row app-one">
+    <div class="col-sm-4 side">
+      <div class="side-one">
+        <div id='heading2' class="row heading">
+          <div class="col-sm-3 col-xs-3 heading-avatar">
+            <div class="heading-avatar-icon">
+                  <img src="{% if user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" alt="user" class="profile-photo-sm">
+            </div>
+          </div>
+
+
+        </div>
+
+        <div class="row searchBox">
+          <div class="col-sm-12 searchBox-inner">
+            <div class="form-group has-feedback">
+              <input id="searchText" type="text" class="form-control" name="searchText" placeholder="Search">
+              <span class="glyphicon glyphicon-search form-control-feedback"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row sideBar">
+          <div id="conversation-list">
+            <!-- Les conversations seront insérées ici -->
+        
+          {% if conversations %}
+          {% for conversation in conversations %}
+            <div class="row sideBar-body">
+                <div class="col-sm-3 col-xs-3 sideBar-avatar">
+                    <div class="avatar-icon">
+                  <img src="{% if conversation.profile.profile_picture %}{{ conversation.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" alt="user" class="profile-photo-sm">
+                    </div>
+                </div>
+                <div class="col-sm-9 col-xs-9 sideBar-main">
+                    <div class="row">
+                        <div class="col-sm-8 col-xs-8 sideBar-name">
+                            <span class="name-meta">{{ conversation.user.username }}</span>
+                        </div>
+                        <div class="col-sm-4 col-xs-4 pull-right sideBar-time">
+                            <span class="time-meta pull-right">{{ conversation.timestamp }}</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12 col-xs-12 sideBar-message">
+                            <p>{{ conversation.last_message }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+                <p>Aucune conversation trouvée.</p>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+      <script>
+        $(document).ready(function () {
+          function loadConversations() {
+    $.ajax({
+        url: '/accounts/get-conversations/',
+        method: 'GET',
+        success: function(response) {
+            const conversationList = $('#conversation-list');
+            conversationList.empty();
+
+            if (response.conversations.length === 0) {
+                conversationList.append('<p>Aucune conversation trouvée.</p>');
+                return;
+            }
+
+            // Trier les conversations par timestamp (plus récentes en haut)
+            response.conversations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            response.conversations.forEach(function(conversation) {
+                // Use profile picture if available, otherwise use default
+                const avatarUrl = conversation.profile_pic_url || "https://bootdey.com/img/Content/avatar/avatar1.png";
+
+                const html = `
+                    <div class="row sideBar-body" onclick="send_message(this)" data-receiver="${conversation.username}">
+                        <div class="col-sm-3 col-xs-3 sideBar-avatar">
+                            <div class="avatar-icon">
+                                <img src="${avatarUrl}" onerror="this.src='https://bootdey.com/img/Content/avatar/avatar1.png'">
+                            </div>
+                        </div>
+                        <div class="col-sm-9 col-xs-9 sideBar-main">
+                            <div class="row">
+                                <div class="col-sm-8 col-xs-8 sideBar-name">
+                                    <span class="name-meta">${conversation.username}</span>
+                                </div>
+                                <div class="col-sm-4 col-xs-4 pull-right sideBar-time">
+                                    <span class="time-meta pull-right">${conversation.timestamp}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                conversationList.append(html);
+            });
+        },
+        error: function() {
+            $('#conversation-list').html('<p>Erreur lors du chargement des conversations.</p>');
+        }
+    });
+}
+      
+          // Charger les conversations au chargement de la page
+          loadConversations();
+      
+          // Mettre à jour les conversations toutes les 5 secondes
+          setInterval(loadConversations, 5000);
+
+
+      });
+      
+        function send_message(button) {
+          var receiver = button.getAttribute("data-receiver");
+          window.location.href = "/accounts/chat/" + encodeURIComponent(receiver) + "/";
+        }
+    </script>
+      <div class="side-two">
+        <div class="row newMessage-heading">
+          <div class="row newMessage-main">
+            <div class="col-sm-2 col-xs-2 newMessage-back">
+              <i class="fa fa-arrow-left" aria-hidden="true"></i>
+            </div>
+            <div class="col-sm-10 col-xs-10 newMessage-title">
+              New Chat
+            </div>
+          </div>
+        </div>
+
+        <div class="row composeBox">
+          <div class="col-sm-12 composeBox-inner">
+            <div class="form-group has-feedback">
+              <input id="composeText" type="text" class="form-control" name="searchText" placeholder="Search People">
+              <span class="glyphicon glyphicon-search form-control-feedback"></span>
+            </div>
+          </div>
+        </div>
+
+    
+      </div>
+    </div>
+
+    <div class="col-sm-8 conversation">
+      <div id='heading1' class="row heading">
+        <div class="col-sm-2 col-md-1 col-xs-3 heading-avatar">
+          <div class="heading-avatar-icon">
+                  <img src="{% if receiver.profile.profile_picture %}{{ receiver.profile.profile_picture.url }}{% else %}https://bootdey.com/img/Content/avatar/avatar7.png{% endif %}" alt="user" class="profile-photo-sm">
+          </div>
+        </div>
+        <div class="col-sm-8 col-xs-7 heading-name">
+          <a class="heading-name-meta">{{ receiver }}</a>
+        </div>
+
+      </div>
+
+      <div class="row message" id="conversation">
+        <div class="row message-previous">
+          <div class="col-sm-12 previous"></div>
+        </div>
+        <div id="chat-box">
+        </div>
+      </div>
+      <script>
+        $(document).ready(function () {
+          var receiver = "{{  receiver.username }}";
+
+          let lastTimestamp = null; 
+          const existingMessageIds = new Set();
+let isFetching = false;
+
+    // Faire défiler vers le bas au chargement initial
+
+          function fetchMessagescrypted() {
+              if (isFetching) return; // Prevent overlapping requests
+    isFetching = true;
+    
+    $.ajax({
+        url: `/accounts/chat/${receiver}/msg/`,
+        method: "GET",
+        data: { since: lastTimestamp },
+        success: function(response) {
+            if (response.messages.length > 0) {
+                const newMessages = response.messages.filter(msg => 
+                    !existingMessageIds.has(msg.id) // Add message IDs to your response
+                );
+                
+                newMessages.forEach(msg => {
+                    addClair(msg.sender, msg.text, msg.sig, msg.file, 
+                            msg.filename, msg.filetype, msg.timestamp, 
+                            msg.sender === "{{ request.user.username }}");
+                    existingMessageIds.add(msg.id);
+                });
+                
+                lastTimestamp = response.messages[response.messages.length - 1].timestamp_raw;
+                decryptReceiver();
+            }
+        },
+        complete: function() {
+            isFetching = false;
+        }
+    });
+          }
+
+        
+
+
+
+        async function decryptReceiver() {
+          const secretKey = sessionStorage.getItem('secretKey');
+          const decryptedMessages = [];
+      
+          const elements = $('.message-text');
+      
+          for (const el of elements) {
+              const $el = $(el);
+              const encryptedMessage = $el.data('encrypted');
+
+              const type = $el.attr('id');
+              const filename = $el.data('name');
+              const filetype = $el.data('type');
+
+      
+              if (encryptedMessage) {
+                  try {
+                    if (type === 'file' && filename) {
+                      const fichier_byte = base64ToBytes(encryptedMessage);
+                    
+                      const decrypted = await decryptAesCbcFile(fichier_byte, secretKey);
+                      let Original_data;
+                      if (filetype && filetype.startsWith('audio/')) {
+                        Original_data = decrypted; 
+                      } else {
+                        Original_data = await decompressData(decrypted);
+                      }
+                    
+                      // Cas d'un fichier
+                      if (filetype && filetype.startsWith('image/')) {
+                        const blob = new Blob([Original_data], { type: filetype });
+                        const imageUrl = URL.createObjectURL(blob);
+                        $el.html(`<img src="${imageUrl}" alt="${filename}" style="max-width: 100%; max-height: 300px;"/>`);
+                      } else if (filetype && filetype.startsWith('audio/')) {
+                          // Cas d'un fichier audio (e.g., voice message)
+                          try {
+                            const blob = new Blob([Original_data], { type: filetype });
+                            const audioUrl = URL.createObjectURL(blob);
+                            console.log('Audio URL:', audioUrl); // Debug: Check URL
+                            $el.html(`
+                              <div class="custom-audio-player" role="region" aria-label="Voice message player">
+                                <audio class="audio-element" preload="metadata">
+                                  <source src="${audioUrl}" type="${filetype}">
+                                  Votre navigateur ne supporte pas l'élément audio.
+                                </audio>
+                                <div class="player-controls">
+                                  <button class="play-pause-btn" aria-label="Play or pause audio">
+                                    <i class="fas fa-play"></i>
+                                  </button>
+                                  <div class="progress-container">
+                                    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                  </div>
+                                  <span class="time-display">0:00 / 0:00</span>
+                                  <button class="volume-btn" aria-label="Toggle mute">
+                                    <i class="fas fa-volume-up"></i>
+                                  </button>
+                                </div>
+                                <div class="error-message" style="display: none; color: red; font-size: 14px; margin-top: 5px;">
+                                  Erreur : Impossible de charger l'audio.
+                                </div>
+                              </div>
+                            `);
+                            const audio = $el.find('.audio-element')[0];
+                            startTimePolling(audio, $el.find('.custom-audio-player'));
+                            // Clean up URL after playback
+                            $el.find('audio').on('ended', function() {
+                              setTimeout(() => URL.revokeObjectURL(audioUrl), 100);
+                            });
+                            
+                          } catch (err) {
+                            console.error('Error rendering audio:', err);
+                            $el.html('<p style="color: red;">Erreur : Impossible de rendre l\'audio.</p>');
+                          }
+                        
+                      } else if (filetype && filetype.startsWith('video/')) {
+            try {
+              const blob = new Blob([Original_data], { type: filetype });
+              const videoUrl = URL.createObjectURL(blob);
+              console.log('Video URL:', videoUrl); // Debug: Check URL
+              $el.html(`
+                <div class="custom-video-player" role="region" aria-label="Video player">
+                  <video class="video-element" controls preload="metadata" style="max-width: 100%; max-height: 300px;">
+                    <source src="${videoUrl}" type="${filetype}">
+                    Votre navigateur ne supporte pas l'élément vidéo.
+                  </video>
+                  <div class="error-message" style="display: none; color: red; font-size: 14px; margin-top: 5px;">
+                    Erreur : Impossible de charger la vidéo.
+                  </div>
+                </div>
+              `);
+              const video = $el.find('.video-element')[0];
+              // Clean up URL after playback
+              $el.find('video').on('ended', function() {
+                setTimeout(() => URL.revokeObjectURL(videoUrl), 100);
+              });
+            } catch (err) {
+              console.error('Error rendering video:', err);
+              $el.html('<p style="color: red;">Erreur : Impossible de rendre la vidéo.</p>');
+            }
+
+          // Case: Other files
+          }else {
+                        // Pour les autres fichiers, créer un lien de téléchargement
+                        const iconMap = {
+                          'application/pdf': 'fa-file-pdf',
+                          'text/plain': 'fa-file-alt',
+                          'application/json': 'fa-file-code',
+                          'application/zip': 'fa-file-archive',
+                          'text/csv': 'fa-file-csv',
+                          'application/msword': 'fa-file-word',
+                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'fa-file-word',
+                          'application/vnd.ms-excel': 'fa-file-excel',
+                          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'fa-file-excel',
+                          'application/vnd.ms-powerpoint': 'fa-file-powerpoint',
+                          'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'fa-file-powerpoint',
+                          // Fallback for unknown types
+                          'default': 'fa-file-download'
+                        };
+                    
+                        // Determine the appropriate icon based on filetype
+                        const iconClass = iconMap[filetype] || iconMap['default'];
+                    
+                        // Create Blob and URL
+                        const blob = new Blob([Original_data], { type: filetype });
+                        const url = URL.createObjectURL(blob);
+                    
+                        // Generate the download link with HTML, including the file-type icon
+                        $el.html(`
+                          <a href="${url}" download="${filename}" class="download-link" role="button" aria-label="Download ${filename}">
+                            <i class="fas ${iconClass}"></i> ${filename}
+                          </a>
+                        `);
+                    
+                        // Clean up URL after download
+                        $el.find('a').on('click', function() {
+                          setTimeout(() => URL.revokeObjectURL(url), 100);
+                        });
+                      }
+                    }else {
+                        const decrypted = await decryptAesCbc(encryptedMessage, secretKey);
+
+                          // Cas d'un message normal
+                          decryptedMessages.push(decrypted);
+                          let parsed;
+                          try {
+                              parsed = JSON.parse(decrypted);
+                          } catch (e) {
+                              parsed = decrypted;
+                          }
+                          $el.text(parsed);
+                      }
+                  } catch (error) {
+                      console.error('Decryption failed:', error);
+                      $el.text('[Erreur de déchiffrement]');
+                  }
+              } else {
+                  $el.text('[Message ou clé manquante]');
+              }
+          }
+      }
+          // Fonction pour ajouter un message à l'affichage
+          function addClair(sender, text, sig, file, filename,filetype, timestamp, isSender) {
+             const msgId = `${timestamp}-${sender}-${text ? text.substring(0,10) : filename}`;
+    
+    if ($(`[data-msg-id="${msgId}"]`).length) {
+        return; // Skip if already exists
+    }
+            var messageClass = isSender ? "message-main-sender" : "message-main-receiver";
+            var containerClass = isSender ? "sender" : "receiver";
+            var receiverAttr = !isSender ? 'data-receiver="true"' : '';
+            var senderAttr = isSender ? 'data-sender="true"' : '';
+            let messageContent = "";
+        
+            if (text && file) {
+                messageContent = `<div class="message-text" ${receiverAttr} ${senderAttr} data-encrypted="${text}">${text}</div>
+                                  <div class="message-text" ${receiverAttr} ${senderAttr} id="file" data-encrypted="${file}" data-type="${filetype }" data-name="${filename}">${filename}</div>`;
+            } else if (text) {
+                messageContent = `<div class="message-text" ${receiverAttr} ${senderAttr} data-encrypted="${text}">${text}</div>`;
+            } else if (file) {
+                messageContent = `<div class="message-text" ${receiverAttr} ${senderAttr} id="file" data-encrypted="${file}" data-type="${filetype}" data-name="${filename}">${filename}</div>`;
+            }
+        
+            let statusIcon = '';
+            if (!isSender) {
+                statusIcon = sig
+                    ? `<i class="fa-solid fa-check" style="color: #63E6BE;"></i>`
+                    : `<i class="fa-solid fa-times" style="color: red;"></i>`;
+            }
+        
+            var messageHTML = `
+            <div class="row message-body">
+                <div class="col-sm-12 ${messageClass}">
+                    <div class="${containerClass}">
+                        ${messageContent}
+                        <span class="message-time pull-right">
+                            ${timestamp}
+                            ${statusIcon}
+                        </span>
+                    </div>
+                </div>
+            </div>`;
+        
+            $("#chat-box").append(messageHTML);
+        }
+        
+function pollMessages() {
+    fetchMessagescrypted();
+    setTimeout(pollMessages, 2000); // Adjust interval as needed
+}
+pollMessages();
+
+      });
+
+
+
+  // Ensure no duplicate event bindings
+$(document).off('click', '.play-pause-btn').off('click', '.volume-btn')
+.off('loadedmetadata', '.audio-element').off('timeupdate', '.audio-element')
+.off('click', '.progress-container');
+
+$(document).on('click', '.play-pause-btn', function() {
+  const $player = $(this).closest('.custom-audio-player');
+  const audio = $player.find('.audio-element')[0];
+  const $icon = $(this).find('i');
+
+  if (audio.paused) {
+      // Force metadata load if duration isn't available
+      if (isNaN(audio.duration) || audio.duration <= 0) {
+          audio.load();
+      }
+      
+      audio.play().then(() => {
+          $icon.removeClass('fa-play').addClass('fa-pause');
+          // Start manual update if events aren't working
+          startTimePolling(audio, $player);
+      }).catch(err => {
+          console.error('Playback error:', err);
+          $player.find('.error-message').text(`Error: ${err.message}`).show();
+      });
+  } else {
+      audio.pause();
+      $icon.removeClass('fa-pause').addClass('fa-play');
+  }
+});
+
+$(document).on('click', '.volume-btn', function() {
+const $player = $(this).closest('.custom-audio-player');
+const audio = $player.find('.audio-element')[0];
+const $icon = $(this).find('i');
+console.log('Volume toggle, muted:', audio.muted); // Debug
+audio.muted = !audio.muted;
+$icon.toggleClass('fa-volume-up fa-volume-mute');
+});
+
+$(document).on('loadedmetadata', '.audio-element', function() {
+  const $player = $(this).closest('.custom-audio-player');
+  const audio = this;
+  console.log('Metadata loaded, duration:', audio.duration, 'src:', audio.src);
+  
+  if (!isNaN(audio.duration) && audio.duration > 0) {
+      const duration = formatTime(audio.duration);
+      $player.find('.time-display').text(`0:00 / ${duration}`);
+  } else {
+      console.warn('Invalid duration:', audio.duration);
+      // Force reload and try again
+      audio.load();
+  }
+});
+
+$(document).on('timeupdate', '.audio-element', function() {
+const $player = $(this).closest('.custom-audio-player');
+const audio = this;
+console.log('Time update, current:', audio.currentTime, 'duration:', audio.duration); // Debug
+if (!isNaN(audio.duration) && !isNaN(audio.currentTime) && audio.duration > 0) {
+  const progress = (audio.currentTime / audio.duration) * 100;
+  $player.find('.progress-bar').css('width', `${progress}%`).attr('aria-valuenow', progress);
+  const current = formatTime(audio.currentTime);
+  const duration = formatTime(audio.duration);
+  $player.find('.time-display').text(`${current} / ${duration}`);
+} else {
+  console.warn('Invalid time data:', audio.currentTime, audio.duration);
+}
+});
+
+$(document).on('click', '.progress-container', function(e) {
+const $player = $(this).closest('.custom-audio-player');
+const audio = $player.find('.audio-element')[0];
+if (!isNaN(audio.duration) && audio.duration > 0) {
+  const rect = this.getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const width = rect.width;
+  const seekTime = (offsetX / width) * audio.duration;
+  audio.currentTime = seekTime;
+  console.log('Seek to:', seekTime); // Debug
+} else {
+  console.warn('Cannot seek, invalid duration:', audio.duration);
+}
+});
+
+// Fallback: Poll audio time if events fail
+function startTimePolling(audio, $player) {
+  // Clear any existing interval
+  if (audio._timeInterval) clearInterval(audio._timeInterval);
+  
+  audio._timeInterval = setInterval(() => {
+      if (!isNaN(audio.duration)){
+          const current = formatTime(audio.currentTime);
+          const duration = formatTime(audio.duration);
+          const progress = (audio.currentTime / audio.duration) * 100;
+          
+          $player.find('.progress-bar').css('width', `${progress}%`)
+                        .attr('aria-valuenow', progress);
+          $player.find('.time-display').text(`${current} / ${duration}`);
+      }
+  }, 200); // Update more frequently for better UX
+  
+  // Clean up on end
+  audio.addEventListener('ended', () => {
+      clearInterval(audio._timeInterval);
+      $player.find('.play-pause-btn i').removeClass('fa-pause').addClass('fa-play');
+  });
+}
+
+// Initialize polling when audio is added
+$(document).on('loadeddata', '.audio-element', function() {
+const $player = $(this).closest('.custom-audio-player');
+const audio = this;
+console.log('Loaded data, duration:', audio.duration); // Debug
+startTimePolling(audio, $player);
+});
+
+function formatTime(seconds) {
+if (isNaN(seconds) || seconds < 0) {
+  console.warn('Invalid seconds:', seconds); // Debug
+  return '0:00';
+}
+const minutes = Math.floor(seconds / 60);
+const secs = Math.floor(seconds % 60);
+return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+      </script>
+      <script>
+        $(document).ready(function () {
+              decryptReceiverMessages();
+
+
+
+          
+
+
+
+            async function decryptReceiverMessages() {
+              let public_key 
+
+              ec = ECDSA(P256params);
+
+
+              const privateKey = sessionStorage.getItem("privateKey");
+              const secretKey = sessionStorage.getItem('secretKey');
+              const username = "{{ request.user.username|escapejs }}";
+              var receiver = "{{  receiver.username }}";
+              $.ajax({
+                url: '/accounts/get-public-key/',
+                method: 'GET',
+                data: { username: receiver },
+                success: function (response) {
+                  if (response.public_key) {
+                    public_key = response.public_key;
+                  } else {
+                    console.warn('Clé publique introuvable.');
+                  }
+                },
+                error: function () {
+                  console.error('Erreur lors de la récupération de la clé publique.');
+                }
+              });
+              const decryptedMessages = await decryptMessage(privateKey);         
+              for (const message of decryptedMessages) {
+                try {
+                  let vrf;
+                  let encrypted;
+              
+                  if (message.type === 'text') {
+                    const message_claire = await dechiffrer_msg(message.message, privateKey, message.c2,'text');
+                    encrypted = await encryptAesCbc(JSON.stringify(message_claire, null, 2), secretKey,'text');
+                    vrf = await ec.verify(message_claire, message.sig, public_key);
+                    console.log(vrf)
+              
+                    // Send encrypted text
+                    await $.ajax({
+                      url: '/accounts/sendmessagecrypted/',
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                      },
+                      data: JSON.stringify({
+                        sender: receiver,
+                        receiver: username,
+                        message: encrypted,
+                        sig: vrf
+                      }),
+                      success: () => console.log('Message envoyé avec succès'),
+                      error: error => console.error('Erreur lors de l\'envoi :', error)
+                    });
+              
+                  }else if (message.type === 'file') {
+                    try {
+                      // Decode Base64 file content
+                      const fichier_byte = base64ToBytes(message.file_content);
+                  
+                      // Decrypt the file
+                      const fichier_claire = await dechiffrer_msg(fichier_byte, privateKey, message.c2_f, 'file');
+                      let Original_data;
+
+                      if (message.content_type && message.content_type.startsWith('audio/')) {
+                        Original_data = fichier_claire; 
+                      } else {
+                         Original_data = await decompressData(fichier_claire);
+                      }
+                      // Decompress the decrypted data
+                  
+                      // Verify the signature
+                      const vrf = await ec.verify(fichier_claire, message.sig_f, public_key);
+                      if (!vrf) {
+                        console.error('Signature verification failed for file:', message.filename);
+                        return;
+                      }
+                  
+                      // Optionally skip compression for audio files (e.g., voice messages)
+                      let compressedFile;
+                      if (message.content_type && message.content_type.startsWith('audio/')) {
+                        compressedFile = Original_data; // Skip compression for audio (already compact)
+                      } else {
+                        compressedFile = await compressData(Original_data);
+                      }
+                      console.log('Compressed file size:', compressedFile.length);
+                  
+                      // Re-encrypt with AES-CBC
+                      const encrypted = await encryptAesCbcFile(compressedFile, secretKey, 'file');
+                      const binary = encrypted.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+                      const compressedBase64 = btoa(binary);
+                  
+                      // Send encrypted file
+                      await $.ajax({
+                        url: '/accounts/sendmessagecrypted/',
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        data: JSON.stringify({
+                          sender: receiver,
+                          receiver: username,
+                          file: compressedBase64,
+                          sig: vrf,
+                          filename: message.filename,
+                          content_type: message.content_type
+                        }),
+                        success: () => console.log('Fichier envoyé avec succès:', message.filename),
+                        error: error => console.error('Erreur lors de l\'envoi du fichier :', error)
+                      });
+                    } catch (err) {
+                      console.error('Erreur lors du traitement du fichier :', err);
+                    }
+                  } else {
+                    console.warn("Type inconnu :", message);
+                  }
+              
+                } catch (error) {
+                  console.error('Decryption failed:', error);
+                }
+              }
+
+              
+              }
+         
+            
+
+          setInterval(decryptReceiverMessages, 1000);
+
+        });
+
+    </script>
+      <div class="row reply">
+  
+
+        <div class="col-sm-1 col-xs-1 reply-send" id="sending_message" data-user ="{{ receiver }}" >
+          <span>Envoyer </span>
+          <i class="fa fa-send fa-2x" style="color:green"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<input type="hidden" id="hiddenprv">
+
+<!-- Modal pour chiffrer le message -->
+<div class="modal fade" id="encryptModal" tabindex="-1" role="dialog" aria-labelledby="encryptModalLabel" >
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" >Chiffrer le message</h5>
+
+      </div>
+      <div class="modal-body">
+    
+        <input type="text" id="username" class="form-control mb-2" placeholder="Nom d'utilisateur" readonly>
+        <input type="text" id="publicKey" class="form-control mb-2" placeholder="Clé publique" readonly>
+
+        <!-- From Uiverse.io by Yaya12085 --> 
+<div class="radio-inputs" id="inputToggle">
+  <label class="radio">
+    <input type="radio" value="message" name="toggle" id="toggleMessage" checked="">
+    <span class="name">Message</span>
+  </label>
+  <label class="radio">
+    <input type="radio" value="file" id="toggleFile" name="toggle">
+    <span class="name">fichier</span>
+  </label>
+  <label class="radio">
+    <input type="radio" value="voice" id="toggleVoice" name="toggle">
+    <span class="name">vocal</span>
+  </label>
+</div>
+        <div id="messageContainer">
+          <textarea id="clearMessage" class="form-control" rows="3" placeholder="Votre message clair"></textarea>
+        </div>
+        <!--<input type="file"  id="fichier" class="form-control" name="file"> -->
+      <div id="fileContainer" style="display: none;">
+  <div class="container2"> 
+    <div class="header"> 
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+        <g id="SVGRepo_iconCarrier"> 
+          <path d="M7 10V9C7 6.23858 9.23858 4 12 4C14.7614 4 17 6.23858 17 9V10C19.2091 10 21 11.7909 21 14C21 15.4806 20.1956 16.8084 19 17.5M7 10C4.79086 10 3 11.7909 3 14C3 15.4806 3.8044 16.8084 5 17.5M7 10C7.43285 10 7.84965 10.0688 8.24006 10.1959M12 12V21M12 12L15 15M12 12L9 15" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </g>
+      </svg>
+      <p>Téléverser un fichier!</p>
+    </div> 
+    <img id="imagePreview" style="display: none; max-width: 100%; max-height: 200px; margin-top: 10px;" alt="Image Preview">
+    <label for="fichier" class="footer"> 
+      <svg fill="#000000" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+        <g id="SVGRepo_iconCarrier">
+          <path d="M15.331 6H8.5v20h15V14.154h-8.169z"></path>
+          <path d="M18.153 6h-.009v5.342H23.5v-.002z"></path>
+        </g>
+      </svg> 
+      <p>Fichier non sélectionné</p> 
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+        <g id="SVGRepo_iconCarrier">
+          <path d="M5.16565 10.1534C5.07629 8.99181 5.99473 8 7.15975 8H16.8402C18.0053 8 18.9237 8.9918 18.8344 10.1534L18.142 19.1534C18.0619 20.1954 17.193 21 16.1479 21H7.85206C6.80699 21 5.93811 20.1954 5.85795 19.1534L5.16565 10.1534Z" stroke="#000000" stroke-width="2"></path>
+          <path d="M19.5 5H4.5" stroke="#000000" stroke-width="2" stroke-linecap="round"></path>
+          <path d="M10 3C10 2.44772 10.4477 2 11 2H13C13.5523 2 14 2.44772 14 3V5H10V3Z" stroke="#000000" stroke-width="2"></path>
+        </g>
+      </svg>
+    </label> 
+    <input id="fichier" name="file" type="file" > 
+  </div> 
+</div>
+      <div id="voiceContainer" style="display: none;">
+        <div class="voice-recorder">
+          <div class="recorder-controls">
+            <button id="recordBtn" class="btn btn-record" title="Start Recording">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="record-icon">
+                <path d="M12 16C14.2091 16 16 14.2091 16 12V8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8V12C8 14.2091 9.79086 16 12 16Z" stroke="#000000" stroke-width="2"/>
+                <path d="M12 18V21M9 21H15" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button id="stopBtn" class="btn btn-stop" title="Stop Recording" disabled>
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="stop-icon">
+                <path d="M6 6H18V18H6V6Z" stroke="#000000" stroke-width="2"/>
+              </svg>
+            </button>
+          </div>
+          <div class="recorder-status">
+            <span id="recordStatus">Appuyez sur le microphone pour démarrer l'enregistrement</span>
+            <span id="recordTimer" style="display: none;">00:00</span>
+          </div>
+          <div id="audioPlayback" style="display: none;">
+            <audio id="recordedAudio" controls></audio>
+          </div>
+        </div>
+      </div>
+
+
+
+  
+        <textarea id="encryptedMessage" class="form-control mt-2" rows="3" placeholder="Message chiffré apparaîtra ici" readonly style="display: none;"></textarea>
+        <textarea id="encryptedFile" class="form-control mt-2" rows="3" placeholder="Message chiffré apparaîtra ici" readonly style="display: none;"></textarea>
+        <input type="hidden" id="chiffr">
+        <input type="hidden" id="sig">
+        <input type="hidden" id="hash_m">
+        <input type="hidden" id="chiffr_f">
+        <input type="hidden" id="sig_f">
+        <input type="hidden" id="hash_f">
+        <input type="hidden" id="filename">
+        <input type="hidden" id="filetype">
+      <div class="submit-progress"><div></div></div>
+            <div id="errorMessages" class="error-message"></div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id='fermer' data-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" id="encryptBtn">Chiffrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+   $(document).ready(function () {
+    const toggleMessage = document.getElementById('toggleMessage');
+    const toggleFile = document.getElementById('toggleFile');
+    const toggleVoice = document.getElementById('toggleVoice');
+    const messageContainer = document.getElementById('messageContainer');
+    const fileContainer = document.getElementById('fileContainer');
+    const voiceContainer = document.getElementById('voiceContainer');
+
+    function updateView(selected) {
+      toggleMessage.checked = selected === 'message';
+      toggleFile.checked = selected === 'file';
+      toggleVoice.checked = selected === 'voice';
+      messageContainer.style.display = selected === 'message' ? 'block' : 'none';
+      fileContainer.style.display = selected === 'file' ? 'block' : 'none';
+      voiceContainer.style.display = selected === 'voice' ? 'block' : 'none';
+    }
+
+    // Event listeners for radio buttons
+    toggleMessage.addEventListener('change', () => {
+      if (toggleMessage.checked) updateView('message');
+    });
+    toggleFile.addEventListener('change', () => {
+      if (toggleFile.checked) updateView('file');
+    });
+    toggleVoice.addEventListener('change', () => {
+      if (toggleVoice.checked) updateView('voice');
+    });
+
+    // Reset all modal content on "Fermer" click
+    $('#fermer').on('click', function () {
+      // Clear inputs, file, textareas, and hidden fields
+      $('#encryptModal input[type="text"], #encryptModal input[type="file"], #encryptModal textarea, #encryptModal input[type="hidden"]').val('');
+      $('#encryptModal input[type="hidden"]').val('');
+      $('.footer p').text('Fichier non sélectionné');
+      // Reset the radio buttons and view
+      updateView('message');
+
+      // Hide dynamic containers and reset their content
+      $('#encryptedMessage, #encryptedFile, #imagePreview, #audioPlayback, #recordTimer').hide().val('');
+      $('#imagePreview').attr('src', '');
+      $('#recordedAudio').attr('src', '');
+      $('#recordStatus').text("Appuyez sur le microphone pour démarrer l'enregistrement");
+
+      // Disable stop recording button
+      $('#stopBtn').prop('disabled', true);
+
+      // Optional: hide any progress indicators
+      $('.submit-progress').hide();
+    });
+  });
+  </script>
+  
+  </script>
+  
+<script>
+  const recordBtn = document.getElementById('recordBtn');
+const stopBtn = document.getElementById('stopBtn');
+const recordStatus = document.getElementById('recordStatus');
+const recordTimer = document.getElementById('recordTimer');
+const recordedAudio = document.getElementById('recordedAudio');
+const audioPlayback = document.getElementById('audioPlayback');
+
+let mediaRecorder;
+let audioChunks = [];
+let startTime;
+function disableModalButtons() {
+    const submitButton = document.getElementById('encryptBtn');
+    const backButton = document.querySelector('#fermer');
+
+    if (submitButton) submitButton.disabled = true;
+    // Add visual feedback for disabled state
+    if (submitButton) submitButton.style.opacity = '0.6';
+    if (submitButton) submitButton.style.cursor = 'not-allowed';
+    if (backButton) backButton.disabled = true;
+    // Add visual feedback for disabled state
+    if (backButton) backButton.style.opacity = '0.6';
+    if (backButton) backButton.style.cursor = 'not-allowed';
+}
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+    
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      recordedAudio.src = audioUrl;
+      audioPlayback.style.display = 'block';
+      audioChunks = [];
+      // Stop all tracks to release the microphone
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    mediaRecorder.start();
+    startTime = Date.now();
+    recordBtn.disabled = true;
+    stopBtn.disabled = false;
+    recordStatus.textContent = 'Recording...';
+    recordTimer.style.display = 'inline';
+    updateTimer();
+  } catch (err) {
+    console.error('Error accessing microphone:', err);
+    recordStatus.textContent = 'Accès au microphone refusé ou indisponible';
+  }
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+  recordBtn.disabled = false;
+  stopBtn.disabled = true;
+  recordStatus.textContent = "L'enregistrement s'est arrêté";
+  recordTimer.style.display = 'none';
+  clearInterval(timerInterval);
+}
+
+function updateTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const seconds = String(elapsed % 60).padStart(2, '0');
+    recordTimer.textContent = `${minutes}:${seconds}`;
+  }, 1000);
+}
+
+let timerInterval;
+
+recordBtn.addEventListener('click', startRecording);
+stopBtn.addEventListener('click', stopRecording);
+
+ const dropArea = document.querySelector('.header');
+const inputFile = document.getElementById('fichier');
+const footerText = document.querySelector('.footer p');
+const headerText = document.querySelector('.header p');
+const imagePreview = document.getElementById('imagePreview');
+
+// Function to display image preview
+function displayImage(file) {
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      imagePreview.src = e.target.result;
+      imagePreview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    imagePreview.style.display = 'none';
+    imagePreview.src = '';
+  }
+}
+
+// When user clicks the header, trigger file input
+dropArea.addEventListener('click', () => {
+  inputFile.click();
+});
+
+// When file is selected manually
+inputFile.addEventListener('change', function() {
+  if (this.files.length > 0) {
+    footerText.textContent = this.files[0].name;
+    headerText.textContent = " Téléverser un fichier";
+    displayImage(this.files[0]);
+  } else {
+    footerText.textContent = "Fichier non sélectionné";
+    headerText.textContent = "Téléverser un fichier";
+    imagePreview.style.display = 'none';
+  }
+});
+
+// Drag and Drop events
+dropArea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropArea.style.borderColor = 'green'; // Optional: change border color
+  headerText.textContent = "Déposez le fichier ici !";
+});
+
+dropArea.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  dropArea.style.borderColor = 'royalblue'; // Reset color
+  headerText.textContent = "Téléverser un fichier";
+});
+
+dropArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropArea.style.borderColor = 'royalblue';
+  
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    inputFile.files = files; // Set dropped file to input
+    footerText.textContent = files[0].name;
+    headerText.textContent = "Téléverser un fichier!";
+    displayImage(files[0]);
+  }
+});
+  </script>
+  
+  
+
+<div id="copy-notification" class="copy-notification">Message envoyé avec succès!</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
+<script src="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script>
+  $('#encryptBtn').on('click', async function(e) {
+    if ($(this).text() === 'Envoyer') {
+      e.preventDefault();
+      const username = "{{ request.user.username|escapejs }}";
+      var receiver = "{{ receiver.username }}";
+  
+      // Récupération du message clair
+      const plaintext = $('#clearMessage').val().trim();
+      var fileInput = $('#fichier')[0];
+      var file = fileInput.files[0];
+      const recordedAudio = document.getElementById('recordedAudio');
+      const selectedMode = $('input[name="toggle"]:checked').val();
+  
+      var Fnamee = '';
+      var Ftypee = '';
+      let fileDataBytes = null;
+  
+      // Handle file upload
+      if (file && selectedMode === 'file') {
+        fileDataBytes = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const arrayBuffer = e.target.result;
+            const byteArray = new Uint8Array(arrayBuffer);
+            resolve(byteArray);
+          };
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
+        Fnamee = file.name;
+        Ftypee = file.type;
+      }
+      // Handle voice recording
+      else if (selectedMode === 'voice' && recordedAudio.src) {
+        fileDataBytes = await new Promise((resolve, reject) => {
+          fetch(recordedAudio.src)
+            .then(res => res.blob())
+            .then(blob => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const arrayBuffer = e.target.result;
+                const byteArray = new Uint8Array(arrayBuffer);
+                resolve(byteArray);
+              };
+              reader.onerror = reject;
+              reader.readAsArrayBuffer(blob);
+            })
+            .catch(reject);
+        });
+        Fnamee = 'voice_message.webm';
+        Ftypee = 'audio/webm';
+      }
+  
+      // Récupération de la clé secrète
+      const secretKey = sessionStorage.getItem('secretKey');
+      if (!secretKey) {
+        alert('Erreur : Clé de chiffrement introuvable');
+        return;
+      }
+  
+      try {
+        if (plaintext && selectedMode === 'message') {
+          const encrypted_message = await encryptAesCbc(plaintext, secretKey);
+          $.ajax({
+            url: '/accounts/sendmessagecrypted/',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify({
+              sender: username,
+              receiver: receiver,
+              message: encrypted_message
+            }),
+            success: function(response) {
+              console.log('Message envoyé avec succès');
+              $('#encryptModal input[type="hidden"]').val('');
+              $('.footer p').text('Fichier non sélectionné');
+              $('#clearMessage').val('');
+              $('#fichier').val('');
+              $('#encryptedMessage').hide();
+              $('#encryptedFile').hide();
+              $('#encryptedFile').val('');
+              $('#encryptedMessage').val('');
+              $('#encryptedMessage, #encryptedFile, #imagePreview, #audioPlayback, #recordTimer').hide().val('');
+              $('#imagePreview').attr('src', '');
+              $('#recordedAudio').attr('src', '');
+              $('#recordStatus').text("Appuyez sur le microphone pour démarrer l'enregistrement");
+              $('#encryptBtn').text('Chiffrer');
+            },
+            error: function(error) {
+              console.error('Erreur lors de l\'envoi :', error);
+            }
+          });
+        } else if (fileDataBytes && (selectedMode === 'file' || selectedMode === 'voice')) {
+          let compressedFile;
+          if (selectedMode === 'voice') {
+            compressedFile = fileDataBytes; // Skip compression for audio (already compact)
+          } else {
+            compressedFile = await compressData(fileDataBytes);
+          }
+          console.log('Compressed file size:', compressedFile.length);
+          const encrypted = await encryptAesCbcFile(compressedFile, secretKey);
+          const binary = encrypted.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+          const compressedBase64 = btoa(binary);
+          $.ajax({
+            url: '/accounts/sendmessagecrypted/',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            data: JSON.stringify({
+              sender: username,
+              receiver: receiver,
+              file: compressedBase64,
+              filename: Fnamee,
+              content_type: Ftypee
+            }),
+            success: function(response) {
+              console.log('Message envoyé avec succès');
+              $('#encryptModal input[type="hidden"]').val('');
+              $('.footer p').text('Fichier non sélectionné');
+              $('#clearMessage').val('');
+              $('#fichier').val('');
+              $('#encryptedMessage').hide();
+              $('#encryptedFile').hide();
+              $('#encryptedFile').val('');
+              $('#encryptedMessage').val('');
+              $('#encryptedMessage, #encryptedFile, #imagePreview, #audioPlayback, #recordTimer').hide().val('');
+              $('#imagePreview').attr('src', '');
+              $('#recordedAudio').attr('src', '');
+              $('#recordStatus').text("Appuyez sur le microphone pour démarrer l'enregistrement");
+              $('#encryptBtn').text('Chiffrer');
+              // Reset voice recording
+              if (selectedMode === 'voice') {
+                recordedAudio.src = '';
+                $('#audioPlayback').hide();
+              }
+            },
+            error: function(error) {
+              console.error('Erreur lors de l\'envoi :', error);
+            }
+          });
+        } else {
+          console.log("Erreur : Aucun message, fichier ou enregistrement vocal trouvé");
+          alert('Veuillez entrer un message, sélectionner un fichier ou enregistrer un message vocal.');
+        }
+  
+
+      } catch (err) {
+        console.error('Erreur de chiffrement :', err);
+        alert('Erreur lors du chiffrement ou de l\'envoi.');
+      }
+    }
+  });
+</script>
+<script>
+
+  
+  
+  
+  
+  function fetchAndStorePublicKey(username) {
+    if (username) {
+      $.ajax({
+        url: '/accounts/get-public-key/',
+        method: 'GET',
+        data: { username: username },
+        success: function (response) {
+          if (response.public_key) {
+            //sessionStorage.setItem('publicKey', response.public_key);
+            console.log('Clé publique stockée dans sessionStorage.');
+          } else {
+            console.warn('Clé publique introuvable.');
+          }
+        },
+        error: function () {
+          console.error('Erreur lors de la récupération de la clé publique.');
+        }
+      });
+    } else {
+      console.log("Aucun nom d'utilisateur fourni.");
+    }
+  }
+  $(document).ready(function () {
+    const username = "{{  receiver.username }}"; // or get it from another source
+    fetchAndStorePublicKey(username);
+  });
+  
+
+
+  async function encryptAesCbc(message, keyBase64, typee) {
+    const iv = window.crypto.getRandomValues(new Uint8Array(16));
+    const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+    const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-CBC' },
+        false,
+        ['encrypt']
+    );
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(message);
+
+    const encrypted = await window.crypto.subtle.encrypt(
+        {
+            name: 'AES-CBC',
+            iv: iv
+        },
+        cryptoKey,
+        data
+    );
+
+    const encryptedBytes = new Uint8Array(encrypted);
+    const combined = new Uint8Array(iv.length + encryptedBytes.length);
+    combined.set(iv);
+    combined.set(encryptedBytes, iv.length);
+
+    // Always use the same encoding method regardless of typee
+    const binaryString = Array.from(combined).map(byte => String.fromCharCode(byte)).join('');
+    return btoa(binaryString);
+}
+
+// For encrypting files (returns Uint8Array)
+async function encryptAesCbcFile(data, key) {
+  // Convert Base64 to Uint8Array
+  const keyBytes = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+  const iv = window.crypto.getRandomValues(new Uint8Array(16));
+  
+  // Apply PKCS#7 padding
+  const blockSize = 16;
+  const paddingLength = blockSize - (data.length % blockSize);
+  const paddedData = new Uint8Array(data.length + paddingLength);
+  paddedData.set(data);
+  paddedData.fill(paddingLength, data.length);
+
+  const cryptoKey = await window.crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-CBC' },
+      false,
+      ['encrypt']
+  );
+
+  const encrypted = await window.crypto.subtle.encrypt(
+      { name: 'AES-CBC', iv },
+      cryptoKey,
+      paddedData
+  );
+
+  // Combine IV and encrypted data
+  const result = new Uint8Array(iv.length + encrypted.byteLength);
+  result.set(iv);
+  result.set(new Uint8Array(encrypted), iv.length);
+  
+  return result;
+}
+
+// For decrypting files (takes Uint8Array, returns Uint8Array)
+async function decryptAesCbcFile(encryptedData, key) {
+  const keyBytes = Uint8Array.from(atob(key), c => c.charCodeAt(0));
+
+  try {
+      if (encryptedData.length < 32) { // IV (16) + at least 1 block (16)
+          throw new Error('Encrypted data too short');
+      }
+
+      const iv = encryptedData.slice(0, 16);
+      const ciphertext = encryptedData.slice(16);
+
+      const cryptoKey = await window.crypto.subtle.importKey(
+          'raw',
+          keyBytes,
+          { name: 'AES-CBC' },
+          false,
+          ['decrypt']
+      );
+
+      const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-CBC', iv },
+          cryptoKey,
+          ciphertext
+      );
+
+      // Remove PKCS#7 padding
+      const decryptedBytes = new Uint8Array(decrypted);
+      const paddingLength = decryptedBytes[decryptedBytes.length - 1];
+      if (paddingLength > 16) {
+          throw new Error('Invalid padding');
+      }
+      
+      return decryptedBytes.slice(0, decryptedBytes.length - paddingLength);
+  } catch (error) {
+      console.error('Decryption failed:', error);
+      throw error;
+  }
+}
+  </script>
+<script>
+  
+  async function decryptAesCbc(encryptedBase64, keyBase64,typee) {
+    const encryptedData = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+    const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+    const iv = encryptedData.slice(0, 16);
+    const ciphertext = encryptedData.slice(16);
+
+    const cryptoKey = await window.crypto.subtle.importKey(
+        'raw',
+        keyBytes,
+        { name: 'AES-CBC' },
+        false,
+        ['decrypt']
+    );
+
+    const decrypted = await window.crypto.subtle.decrypt(
+        {
+            name: 'AES-CBC',
+            iv: iv
+        },
+        cryptoKey,
+        ciphertext
+    );
+
+    return new TextDecoder().decode(decrypted);
+}
+async function decryptAesCbc2(encryptedBase64, keyBase64, type) {
+  try {
+      // 1. Convertir Base64 en ArrayBuffer
+      const encryptedData = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+      const keyBytes = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+
+      // 2. Extraire IV et données chiffrées
+      const iv = encryptedData.slice(0, 16);
+      const ciphertext = encryptedData.slice(16);
+
+      // 3. Importer la clé
+      const cryptoKey = await window.crypto.subtle.importKey(
+          'raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']
+      );
+
+      // 4. Déchiffrer
+      const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-CBC', iv: iv }, cryptoKey, ciphertext
+      );
+
+      // 5. Retourner selon le type
+      if (type === 'file') {
+          // Pour les fichiers, retourner directement en Base64
+          return btoa(String.fromCharCode(...new Uint8Array(decrypted)));
+      } else {
+          // Pour le texte, retourner la chaîne décodée
+          return new TextDecoder().decode(decrypted);
+      }
+  } catch (error) {
+      console.error('Erreur de déchiffrement:', error);
+      throw error;
+  }
+}
+
+function enableModalButtons() {
+    const submitButton = document.getElementById('encryptBtn');
+    const backButton = document.querySelector('#fermer');
+
+    if (submitButton) backButton.disabled = false;
+    if (submitButton) backButton.style.opacity = '1';
+    if (submitButton) backButton.style.cursor = 'pointer';
+
+    if (backButton) submitButton.disabled = false;
+    if (backButton) submitButton.style.opacity = '1';
+    if (backButton) submitButton.style.cursor = 'pointer';
+}
+  $(document).ready(function () {
+    // Ouvrir la modal de chiffrement lors du clic sur l'icône d'envoi
+    $('.reply-send').click(function () {
+      $('#encryptModal').modal('show');
+      var username = $(this).data('user');
+      $('#username').val(username);
+      
+        if (username) {
+          // Faire la requête AJAX
+          $.ajax({
+            url: '/accounts/get-public-key/',
+            method: 'GET',
+            data: { username: username },
+            success: function (response) {
+              if (response.public_key) {
+                $('#publicKey').val(response.public_key);  
+              } else {
+                $('#publicKey').val('Clé publique introuvable.');
+              }
+            },
+            error: function () {
+              $('#publicKey').val('Erreur lors de la récupération de la clé publique.');
+            }
+          });
+        } else {
+          $('#publicKey').val('');
+          console.log("Aucun nom d'utilisateur n'est disponible.");
+        }
+
+    });
+    
+    // Chiffrer le message
+    $('#encryptBtn').click(async function () {
+      const progressBar = document.querySelector('.submit-progress');
+      progressBar.style.display = 'block';
+      disableModalButtons();
+
+      var clearMessage = $('#clearMessage').val();
+      var publicKey = $('#publicKey').val();
+      const privatekey = sessionStorage.getItem("privateKey");
+      var username = $('#username').val();
+      const recordedAudio = document.getElementById('recordedAudio');
+
+      var fileInput = $('#fichier')[0];
+      var file = fileInput.files[0];
+      const selectedMode = $('input[name="toggle"]:checked').val();
+      var Fnamee='';
+      var Ftypee='';
+
+      // Mettre la valeur dans le champ #username
+      if ($(this).text() === 'Chiffrer') {
+        $(this).text('message a chiffreé');
+        let fileDataBytes = null;
+        let isVoice = false;
+        if (file && selectedMode === 'file') {
+          fileDataBytes = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const arrayBuffer = e.target.result16ArrayBuffer = e.target.result;
+              const byteArray = new Uint8Array(arrayBuffer);
+              resolve(byteArray);
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+          });
+          Fnamee = file.name;
+          Ftypee = file.type;
+        }
+        else if (selectedMode === 'voice' && recordedAudio.src) {
+          isVoice = true;
+          fileDataBytes = await new Promise((resolve, reject) => {
+            fetch(recordedAudio.src)
+              .then(res => res.blob())
+              .then(blob => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  const arrayBuffer = e.target.result;
+                  const byteArray = new Uint8Array(arrayBuffer);
+                  resolve(byteArray);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(blob);
+              })
+              .catch(reject);
+          });
+          Fnamee = 'voice_message.webm';
+          Ftypee = 'audio/webm';
+        }
+
+
+        var result = await encryptMessage(fileDataBytes, publicKey, privatekey, clearMessage, Fnamee, Ftypee, isVoice);        
+        if (result && result.c && result.c_f) {
+    $('#encryptedMessage').val(result.c).show();
+    $('#encryptedFile').val(result.c_f).show();
+} else if (result && result.c) {
+    $('#encryptedMessage').val(result.c).show();
+} else if (result && result.c_f) {
+    $('#encryptedFile').val(result.c_f).show();
+} else {
+
+        const errorDiv = document.getElementById("errorMessages");
+        errorDiv.textContent = "Erreur: Veuillez entrer un fichier ou un message";
+        errorDiv.style.display = "block";
+
+          setTimeout(() => { errorDiv.style.display = "none"; }, 5000);
+
+      enableModalButtons();
+      progressBar.style.display = 'none';
+              $(this).text('Chiffrer');
+
+}
+        $('#chiffr').val(result.c2);
+        $('#sig').val(result.signature);
+        $('#hash_m').val(result.hash);
+        $('#filename').val(result.file_name);
+        $('#filetype').val(result.file_type);
+        $('#chiffr_f').val(result.c2_f);
+        $('#sig_f').val(result.signature_f);
+        $('#hash_f').val(result.hash_f);        
+        $(this).text('Envoyer');
+        enableModalButtons();
+      progressBar.style.display = 'none';
+
+      } else if ($(this).text() === 'Envoyer') {
+          disableModalButtons();
+
+        progressBar.style.display = 'block';
+        var encryptedMessage = $('#encryptedMessage').val();
+        var encryptedFile = $('#encryptedFile').val();
+        var c2_f = $('#chiffr_f').val();
+        var signature_f = $('#sig_f').val();
+        var hash_value_f = $('#hash_f').val();
+        var c2 = $('#chiffr').val();
+        var signature = $('#sig').val();
+        var hash_value = $('#hash_m').val();
+        var filename = $('#filename').val();
+        var filetype = $('#filetype').val();
+        var success = await sendMessage(username, encryptedMessage, c2,signature,hash_value,c2_f,signature_f,hash_value_f,encryptedFile,filename,filetype);
+        
+
+        if (success) {
+          enableModalButtons();
+           progressBar.style.display = 'none';
+          $('#copy-notification').fadeIn().delay(4000).fadeOut(); // show for 2 seconds
+          $('#encryptModal').modal('hide');
+        } else {
+          enableModalButtons();
+          alert('Erreur lors de l\'envoi du message.');
+        }
+      }
+    });
+
+   
+
+
+
+
+  });
+
+  async function encryptMessage(file, key, privatekey, message, file_name, file_type, isVoice = false) {
+    if(message && file){
+      let { c, c2 } = await chiffrer_msg(message, key);
+      let { signature, hash } = await ec.sign(message, privatekey);
+      let { c_f, c2_f } = await chiffrer_msg(file, key);
+      let { signature_f, hash_f } = await ec.sign(file, privatekey);
+      let data = { c, c2,signature,c_f,hash,c2_f,signature_f,hash_f };
+      return data;
+    }else if (message) {
+      ec = ECDSA(P256params);
+      let { c, c2 } = await chiffrer_msg(message, key,'text');
+      let { signature, hash } = await ec.sign(message, privatekey);
+      let data = { c, c2,signature,hash };
+       return data;
+    } else if(file) {
+      ec = ECDSA(P256params);
+      const compressedFile = isVoice ? file : await compressData(file); // Compress only non-voice files
+      console.log('Compressed file size:', compressedFile.length); // Log size
+      let { c, c2 } = await chiffrer_msg(compressedFile, key,'file');
+      const binary = c.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+      const compressedBase64 = btoa(binary);
+      let { signature, hash } = await ec.sign(compressedFile, privatekey);
+      let c_f = compressedBase64;
+      let c2_f = c2;
+      let signature_f = signature;
+      let hash_f = hash;  
+      let data = { c_f, c2_f, signature_f, hash_f,file_name,file_type};
+      return data;
+    }
+
+   
+  }
+
+  async function sendMessage(username, encryptedMessage, c2,signature,hash_value,c2_f,signature_f,hash_value_f,enfile,filename,filetype) {
+    if(encryptedMessage && enfile ){
+      return fetch('/accounts/send-message/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+          username: username,
+          encrypted_file: enfile,
+          encrypted_message: encryptedMessage,
+          c2: c2,
+          signature: signature,
+          hash_value : hash_value,
+          c2_f: c2_f,
+          signature_f: signature_f,
+          hash_value_f : hash_value_f,
+          filename:filename,
+          filetype:filetype
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          return data.success;
+        } else {
+          throw new Error('Erreur d\'envoi : ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Erreur :', error);
+        return null;
+      });
+    }else if(encryptedMessage){
+    return fetch('/accounts/send-message/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        username: username,
+        encrypted_message: encryptedMessage,
+        c2: c2,
+        signature: signature,
+        hash_value : hash_value
+
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        return data.success;
+      } else {
+        throw new Error('Erreur d\'envoi : ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Erreur :', error);
+      return null;
+    });
+  }else if(enfile){
+    return fetch('/accounts/send-message/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        username: username,
+        encrypted_file: enfile,
+        c2_f: c2_f,
+        signature_f: signature_f,
+        hash_value_f : hash_value_f,
+        filename:filename,
+        filetype:filetype
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        return data.success;
+      } else {
+        throw new Error('Erreur d\'envoi : ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Erreur :', error);
+      return null;
+    });
+  }
+  }
+
+  function decryptMessage(key) {
+    var receiver = "{{  receiver.username }}";
+
+    return fetch('/accounts/dcrypt/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            receiver : receiver,
+            private_key: key
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        console.error('Server error:', data.error);
+        return null;
+    }
+    return data.messages || [];
+
+  
+
+  
+  })
+    .catch(error => {
+        console.error('Erreur :', error);
+        return null;
+    });
+}
+function navbar() {
+  var navbar = document.getElementById('myTopnav');
+  var responsive_class_name = 'responsive'
+  navbar.classList.toggle(responsive_class_name)
+}
+function display(){
+  var talents = document.getElementById('drop');
+  talents.style.display='block';
+}
+</script>
+<script>
+  $(document).ready(function () {
+      // Check for saved theme preference or default to light
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      if (savedTheme === 'dark') {
+          $('body').addClass('dark-mode');
+          $('#themeToggle i').removeClass('fa-moon').addClass('fa-sun');
+      }
+  
+      // Toggle theme on button click
+      $('#themeToggle').click(function () {
+          $('body').toggleClass('dark-mode');
+          const isDarkMode = $('body').hasClass('dark-mode');
+          
+          // Update icon and save preference
+          $('#themeToggle i').removeClass(isDarkMode ? 'fa-moon' : 'fa-sun').addClass(isDarkMode ? 'fa-sun' : 'fa-moon');
+          localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      });
+  });
+  </script>
+</body>
+
+</html>
